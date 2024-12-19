@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace Presentation.Views
 {
-    public class UnitView : MonoBehaviour, IUnit
+    class UnitView : MonoBehaviour, IUnit
     {
-        public Transform Transform => transform;
-        public Renderer Renderer => _renderer;
+        Transform IUnit.Transform => transform;
+        Renderer IUnit.Renderer => _renderer;
 
         [SerializeField]
         Renderer _renderer;
@@ -19,15 +19,15 @@ namespace Presentation.Views
         static readonly int _movementSpeed = Animator.StringToHash("MovementSpeed");
         static readonly int _attack = Animator.StringToHash("Attack");
 
-        public void Move(Vector3 currentPos, Vector3 lastPos, float speed) =>
+        public void OnDeathAnimFinished() => Destroy(gameObject);
+
+        void IUnit.Move(Vector3 currentPos, Vector3 lastPos, float speed) =>
             _animator.SetFloat(_movementSpeed, (currentPos - lastPos).magnitude / speed);
 
-        public void Attack() => _animator.SetTrigger(_attack);
+        void IUnit.Attack() => _animator.SetTrigger(_attack);
 
-        public void Hit() => _animator.SetTrigger(_hit);
+        void IUnit.Hit() => _animator.SetTrigger(_hit);
 
-        public void Die() => _animator.SetTrigger(_death);
-
-        public void OnDeathAnimFinished() => Destroy(gameObject);
+        void IUnit.Die() => _animator.SetTrigger(_death);
     }
 }

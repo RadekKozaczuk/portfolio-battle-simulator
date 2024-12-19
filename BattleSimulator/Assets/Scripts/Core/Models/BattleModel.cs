@@ -1,5 +1,4 @@
 ﻿using System;
-using Unity.Collections;
 using UnityEngine;
 
 namespace Core.Models
@@ -15,15 +14,9 @@ namespace Core.Models
         readonly unsafe UnitModel*[][] _memorySpans;
         readonly UnitModel[] _models;
 
-        // unit does not contain position for performance reasons (it would require as to duplicate)
-        NativeArray<Vector3> _unitLastPositions;
-        NativeArray<Vector3> _unitCurrentPositions;
-
         public BattleModel(int armyCount)
         {
             CenterOfArmies = default;
-            _unitLastPositions = default;
-            _unitCurrentPositions = default;
 
             // for now assume 3 armies, 2 unit types, 50 units each type
             const int ArmyCountTemp = 3;

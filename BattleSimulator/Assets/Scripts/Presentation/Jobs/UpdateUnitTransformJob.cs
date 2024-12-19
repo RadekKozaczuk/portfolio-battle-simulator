@@ -14,7 +14,7 @@ namespace Presentation.Jobs
         // Jobs declare all data that will be accessed in the job
         // By declaring it as read only, multiple jobs are allowed to access the data in parallel
         /// <summary>
-        /// Contains -infinity if the unit is dead (in such case the presentetianal model will be destroyed and no update possible.
+        /// Contains -infinity if the unit is dead (in such case the presentational model will be destroyed and no update possible.
         /// </summary>
         [ReadOnly]
         public NativeArray<float2> Positions;
@@ -24,18 +24,18 @@ namespace Presentation.Jobs
         /// <see cref="float2.zero"/> otherwise.
         /// </summary>
         [ReadOnly]
-        public NativeArray<float2> AttackingEnemyPosition;
+        public NativeArray<float2> AttackingEnemyPos;
 
         // The code actually running on the job
         public void Execute(int index, TransformAccess transform)
         {
-            // unit dead
-            if (Mathf.Approximately(AttackingEnemyPosition[index].x, float.MinValue))
+            // unit is dead
+            if (Mathf.Approximately(AttackingEnemyPos[index].x, float.MinValue))
                 return;
 
-            if (math.any(AttackingEnemyPosition[index] == float2.zero))
+            if (math.any(AttackingEnemyPos[index] == float2.zero))
             {
-                float2 dir = Positions[index] - AttackingEnemyPosition[index];
+                float2 dir = Positions[index] - AttackingEnemyPos[index];
                 transform.rotation = Quaternion.Euler(dir.x, 0, dir.y);
             }
 

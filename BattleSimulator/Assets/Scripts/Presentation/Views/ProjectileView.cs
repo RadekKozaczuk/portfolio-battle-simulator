@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace Presentation.Views
 {
-    public class ProjectileView : MonoBehaviour, IProjectile
+    class ProjectileView : MonoBehaviour, IProjectile
     {
-        public GameObject GameObject => gameObject;
-        public Transform Transform => transform;
-        public Renderer Renderer => _renderer;
+        GameObject IProjectile.GameObject => gameObject;
+        Transform IProjectile.Transform => transform;
+        Renderer IProjectile.Renderer => _renderer;
 
         [SerializeField]
         Renderer _renderer;

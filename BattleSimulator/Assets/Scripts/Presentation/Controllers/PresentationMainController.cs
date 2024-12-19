@@ -1,7 +1,15 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using Core;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core.Interfaces;
+using Presentation.Config;
+using Presentation.Interfaces;
+using Presentation.Jobs;
+using Unity.Jobs;
+using UnityEngine;
+using UnityEngine.Jobs;
+using UnityEngine.Pool;
 
 namespace Presentation.Controllers
 {
@@ -19,7 +27,14 @@ namespace Presentation.Controllers
     [UsedImplicitly]
     class PresentationMainController : IInitializable, ICustomFixedUpdate, ICustomUpdate, ICustomLateUpdate
     {
+        static readonly ProjectileConfig _projectileConfig;
+
         static bool _coreSceneLoaded;
+
+        readonly ObjectPool<IProjectile> _projectilePool = new(
+            () => Object.Instantiate(_projectileConfig.ProjectilePrefab, PresentationSceneReferenceHolder.ProjectileContainer),
+            view => view.GameObject.SetActive(true),
+            view => view.GameObject.SetActive(false));
 
         [Preserve]
         PresentationMainController() { }
@@ -32,6 +47,24 @@ namespace Presentation.Controllers
         {
             if (!_coreSceneLoaded)
                 return;
+
+            // todo: for now so the code launches without bugs
+            return;
+
+            // update units
+            var job1 = new UpdateUnitTransformJob
+            {
+                Positions = CoreData.UnitCurrPos,
+                AttackingEnemyPos = CoreData.AttackingEnemyPos
+            };
+            JobHandle handle1 = job1.Schedule(PresentationData.UnitTransformAccess);
+
+            // update projectiles
+            var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
+            JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);
+
+            handle1.Complete();
+            handle2.Complete();
         }
 
         public void CustomLateUpdate() { }

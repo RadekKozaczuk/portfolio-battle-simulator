@@ -24,4 +24,19 @@ namespace Core.Enums
         /// </summary>
         Settings
     }
+
+    public enum UnitType
+    {
+        Warrior = 0,
+        Archer = 1
+    }
+
+    /// <summary>
+    /// Strategy can be applied on a per-unit basis. Must be an enum as adding new without recompiling the code would not be easily achiveable.
+    /// </summary>
+    public enum Strategy
+    {
+        Basic = 0,
+        Defensive = 1
+    }
 }

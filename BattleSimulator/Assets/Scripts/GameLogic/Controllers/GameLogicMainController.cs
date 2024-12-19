@@ -1,4 +1,5 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System.Threading.Tasks;
 using Core.Interfaces;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
@@ -24,7 +25,18 @@ namespace GameLogic.Controllers
 
         public void CustomFixedUpdate() { }
 
-        public void CustomUpdate() { }
+        public void CustomUpdate()
+        {
+            const int NumberOfUnitSpans = 6; // todo: probably number of armies multiplied by number of unit types
+            const int NumberOfProjectileSpans = 3; // todo: most likely equal to the number of projectile throwing units * the number of armies
+
+            // we iterate as many times as there is memory spans
+            // each unit type is updated in o
+            Parallel.For(0, NumberOfUnitSpans + NumberOfProjectileSpans, spanId =>
+            {
+
+            });
+        }
 
         public void CustomLateUpdate() { }
     }

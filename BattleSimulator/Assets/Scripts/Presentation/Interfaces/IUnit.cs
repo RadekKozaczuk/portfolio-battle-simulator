@@ -3,17 +3,17 @@ using UnityEngine;
 
 namespace Presentation.Interfaces
 {
-    public interface IUnit
+    internal interface IUnit
     {
-        public Transform Transform { get; }
-        public Renderer Renderer { get; }
+        internal Transform Transform { get; }
+        internal Renderer Renderer { get; }
 
-        public void Move(Vector3 currentPos, Vector3 lastPos, float speed);
+        internal void Move(Vector3 currentPos, Vector3 lastPos, float speed);
 
-        public void Attack();
+        internal void Attack();
 
-        public void Hit();
+        internal void Hit();
 
-        public void Die();
+        internal void Die();
     }
 }

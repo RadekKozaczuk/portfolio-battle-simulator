@@ -12,7 +12,7 @@ namespace Presentation.ViewModels
     [UsedImplicitly]
     public class PresentationViewModel : IInitializable
     {
-        static readonly PlayerConfig _playerConfig;
+        static readonly UnitConfig _playerConfig;
 
         [Inject]
         static readonly PresentationMainController _presentationMainController;

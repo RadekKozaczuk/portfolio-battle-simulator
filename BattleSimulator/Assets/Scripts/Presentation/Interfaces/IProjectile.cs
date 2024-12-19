@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace Presentation.Interfaces
 {
-    public interface IProjectile
+    internal interface IProjectile
     {
-        public GameObject GameObject { get; }
-        public Transform Transform { get; }
-        public Renderer Renderer { get; }
+        internal GameObject GameObject { get; }
+        internal Transform Transform { get; }
+        internal Renderer Renderer { get; }
     }
 }

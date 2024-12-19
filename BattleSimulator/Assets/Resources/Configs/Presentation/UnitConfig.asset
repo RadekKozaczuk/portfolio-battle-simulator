@@ -10,9 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc11052e922e41289a7b677b227f78d1, type: 3}
-  m_Name: PlayerConfig
+  m_Name: UnitConfig
   m_EditorClassIdentifier: 
-  PlayerPrefab: {fileID: 4873979986496682477, guid: 2160e9fea7be0ab43b1fd9eeffa2e80e, type: 3}
-  PlayerServerPrefab: {fileID: -7864258812005479075, guid: bf8cb464cfbf2c54c828cc31762ac94e, type: 3}
-  PlayerClientPrefab: {fileID: -7864258812005479075, guid: 8a7cbc6bf6d8da541a58d74918fb2859, type: 3}
-  PlayerSpeed: 7
+  UnitPrefabs:
+  - {fileID: 5677383435110417796, guid: 59bb833c36b6c124f9ac4a57845f601a, type: 3}
+  - {fileID: 3941805810320399329, guid: 32e971c955b2e2149941e507104e167d, type: 3}

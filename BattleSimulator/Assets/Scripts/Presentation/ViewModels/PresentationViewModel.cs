@@ -52,7 +52,5 @@ namespace Presentation.ViewModels
         }
 
         public static void GameplayOnExit() { }
-
-        public static void Movement(Vector2 movementInput) { }
     }
 }

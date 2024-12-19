@@ -1,4 +1,5 @@
-﻿using System;
+﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -17,7 +18,7 @@ namespace Core.Services
     public class SignalService
     {
         readonly int _signalCount;
-        static SignalService _instance = null!;
+        static SignalService _instance;
 
         readonly string[] _signalNames;
 

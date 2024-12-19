@@ -1,7 +1,13 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Core;
 using Core.Interfaces;
+using Core.Models;
 using JetBrains.Annotations;
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
@@ -39,5 +45,46 @@ namespace GameLogic.Controllers
         }
 
         public void CustomLateUpdate() { }
+
+        public static void InitializeDataModel(List<ArmyData> armies)
+        {
+            int unitCount = 0;
+
+            foreach (ArmyData army in armies)
+            {
+                unitCount += army.Warriors;
+                unitCount += army.Archers;
+            }
+
+            CoreData.UnitCurrPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            CoreData.AttackingEnemyPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+
+            // for now assume 3 armies, 2 unit types, 50 units each type
+            const int ArmyCountTemp = 3;
+            const int UnitTypeCountTemp = 2;
+            const int UnitCountTemp = 50; // todo: for now constant - may be dynamic in the final version
+
+            // todo: for now constant may be dynamic in the final version
+            const int TotalNumberOfUnitsPerArmy = UnitTypeCountTemp * UnitCountTemp;
+
+            CoreData.Models = new UnitModel[ArmyCountTemp * UnitTypeCountTemp * UnitCountTemp];
+
+            unsafe
+            {
+                CoreData.UnitSpans = new UnitModel*[ArmyCountTemp * UnitTypeCountTemp];
+
+                for (int armyId = 0; armyId < ArmyCountTemp; armyId++)
+                    for (int unitType = 0; unitType < UnitTypeCountTemp; unitType++)
+                    {
+                        Span<UnitModel> span = CoreData.Models.AsSpan(armyId * TotalNumberOfUnitsPerArmy + unitType * UnitCountTemp,
+                                                                      UnitCountTemp);
+
+                        fixed (UnitModel* ptr = span)
+                        {
+                            CoreData.UnitSpans[armyId * UnitTypeCountTemp + unitType] = ptr;
+                        }
+                    }
+            }
+        }
     }
 }

@@ -11,8 +11,8 @@ namespace Presentation
     {
         internal static Camera MainMenuCamera;
         internal static Camera GameplayCamera;
-        internal static Transform ProjectileContainer;
         internal static Transform UnitContainer;
+        internal static Transform ProjectileContainer;
 
         [SerializeField]
         Camera _mainCamera;
@@ -21,17 +21,17 @@ namespace Presentation
         Camera _gameplayCamera;
 
         [SerializeField]
-        Transform _projectileContainer;
+        Transform _unitContainer;
 
         [SerializeField]
-        Transform _unitContainer;
+        Transform _projectileContainer;
 
         void Awake()
         {
             MainMenuCamera = _mainCamera;
             GameplayCamera = _gameplayCamera;
-            ProjectileContainer = _projectileContainer;
             UnitContainer = _unitContainer;
+            ProjectileContainer = _projectileContainer;
         }
     }
 }

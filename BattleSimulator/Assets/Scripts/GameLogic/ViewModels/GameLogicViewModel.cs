@@ -6,8 +6,6 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
-using Unity.Collections;
-using Unity.Mathematics;
 
 namespace GameLogic.ViewModels
 {
@@ -51,19 +49,7 @@ namespace GameLogic.ViewModels
 
         public static void InitializeBattleModel(List<ArmyData> armies)
         {
-            int unitCount = 0;
-
-            foreach (ArmyData army in armies)
-            {
-                unitCount += army.Warriors;
-                unitCount += army.Archers;
-            }
-
-            CoreData.UnitCurrPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            CoreData.AttackingEnemyPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-
-            // initially size = 10, upscales when needed
-            CoreData.ProjectileCurrPos = new NativeArray<float2>(10, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            GameLogicMainController.InitializeDataModel(armies);
         }
     }
 }

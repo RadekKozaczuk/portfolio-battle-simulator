@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78c068cb569a6d54580eda2c8fc36358, type: 3}
+  m_Name: DebugConfig
+  m_EditorClassIdentifier: 
+  LogSystemExecutionOrder: 0
+  LogAddedSignals: 0
+  LogRequestedStateChange: 0
+  LogPlayerPosition: 0
+  ShowInputLog: 0
+  DebugMobileButtonPrefab: {fileID: 1166935600446303237, guid: c03f31b7cb1fcff4b9951ab064d245d2, type: 3}
+  DebugMobileConsolePrefab: {fileID: 1397740784254656510, guid: f2507e279e757a346b8d6e0776b45442, type: 3}
+  DebugConsolePrefab: {fileID: 1368048663407062256, guid: 35d9cb4588e922143b1a16946f77ef85, type: 3}
+  CommandPrefab: {fileID: 5732516144648881804, guid: 81aea3866e0e3f3498e89a0207400cc9, type: 3}

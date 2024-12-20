@@ -53,20 +53,15 @@ namespace GameLogic.Controllers
                 Span<UnitModel> allies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
                 PushAwayFromAllies(ref allies, unit.Id);
 
-                // enemies are in a continues block of memory
-                if (layout.EnemyIndex1 == int.MinValue)
-                {
-                    Span<UnitModel> enemies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
-                    PushAwayFromEnemiesAndFindNearest(enemies, unit.Id);
-                }
-                else // enemies are spread across two blocks of memory
-                {
-                    Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
-                    Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                PushAwayFromEnemiesAndFindNearest(enemies1, unit.Id);
 
-                    PushAwayFromEnemiesAndFindNearest(enemies1, unit.Id);
-                    PushAwayFromEnemiesAndFindNearest(enemies2, unit.Id);
-                }
+                // true if enemy are stored in a continues block of memory
+                if (layout.EnemyIndex2 == int.MinValue)
+                    return;
+
+                Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                PushAwayFromEnemiesAndFindNearest(enemies2, unit.Id);
 
                 unit.AttackCooldown -= deltaTime;
             });
@@ -76,20 +71,15 @@ namespace GameLogic.Controllers
                 ref ProjectileModel projectile = ref CoreData.Projectiles[projectileId];
                 ref MemoryLayoutModel layout = ref _memLayout[projectile.ArmyId];
 
-                // enemies are in a continues block of memory
-                if (layout.EnemyIndex1 == int.MinValue)
-                {
-                    Span<UnitModel> enemies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
-                    UpdateProjectile(projectileId, enemies);
-                }
-                else // enemies are spread across two blocks of memory
-                {
-                    Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
-                    Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.EnemyIndex1, layout.EnemyLength1);
+                UpdateProjectile(projectileId, enemies1);
 
-                    UpdateProjectile(projectileId, enemies1);
-                    UpdateProjectile(projectileId, enemies2);
-                }
+                // true if enemy are stored in a continues block of memory
+                if (layout.EnemyIndex2 == int.MinValue)
+                    return;
+
+                Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.EnemyIndex2, layout.EnemyLength2);
+                UpdateProjectile(projectileId, enemies2);
             });
         }
 

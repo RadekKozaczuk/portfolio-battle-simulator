@@ -2,8 +2,6 @@
 using UnityEngine.UI;
 using UnityEngine;
 using Core.Enums;
-using UI.Popups;
-using Core;
 using Core.Services;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -12,33 +10,23 @@ using UnityEditor;
 namespace UI.Views
 {
     [DisallowMultipleComponent]
-    class MainMenuView : MonoBehaviour
+    class RightPanelView : MonoBehaviour
     {
         [SerializeField]
-        Button _newGame;
-
-        [SerializeField]
-        Button _settings;
+        Button _start;
 
         [SerializeField]
         Button _quit;
 
         void Awake()
         {
-            _newGame.onClick.AddListener(NewGame);
-            _settings.onClick.AddListener(Settings);
+            _start.onClick.AddListener(Start);
             _quit.onClick.AddListener(Quit);
         }
 
-        static void NewGame()
+        static void Start()
         {
-            CoreData.CurrentLevel = Level.HubLocation;
-            GameStateService.ChangeState(GameState.Gameplay, new[] {(int)CoreData.CurrentLevel});
-        }
-
-        static void Settings()
-        {
-            PopupSystem.ShowPopup(PopupType.Settings);
+            GameStateService.ChangeState(GameState.Gameplay);
         }
 
         static void Quit()

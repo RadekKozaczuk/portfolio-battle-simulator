@@ -11,12 +11,6 @@ namespace Core.Enums
 
     public enum StateTransitionParameter { }
 
-    public enum Level
-    {
-        HubLocation = 4,
-        Level0 = 5
-    }
-
     public enum PopupType
     {
         /// <summary>

@@ -1,10 +1,7 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using System;
-using Core.Enums;
 using Core.Models;
 using Unity.Collections;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Core
 {
@@ -15,8 +12,6 @@ namespace Core
     public static class CoreData
     {
         public static float2 CenterOfArmies;
-        public static Level CurrentLevel;
-
         public static NativeArray<float2> UnitCurrPos;
 
         /// <summary>

@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: UIConfig
   m_EditorClassIdentifier: 
   InputActionAsset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  SwipeMinPercentage: 0.2
+  UnitPanelPrefab: {fileID: 2700344369449275414, guid: 57b956bb752e3c54b9fa1e1cee8a3bd4, type: 3}

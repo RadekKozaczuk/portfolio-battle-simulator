@@ -83,18 +83,6 @@ namespace Boot
             // feel free to change these values when the game gets closer to the release
 #if UNITY_EDITOR
             Application.targetFrameRate = 30;
-#elif UNITY_ANDROID || UNITY_IOS
-            // Mobile platforms ignore QualitySettings.vSyncCount
-            // Use Application.targetFrameRate to control the frame rate on mobile platforms.
-            Application.targetFrameRate = 30;
-#elif DEVELOPMENT_BUILD
-            // On all other platforms, Unity ignores the value of targetFrameRate if you set vSyncCount
-            // and calculates the target frame rate by dividing the platform's default target frame rate by the value of vSyncCount.
-            QualitySettings.vSyncCount = (int)(Screen.currentResolution.refreshRateRatio.value / 30);
-            Application.targetFrameRate = 60;
-#else
-            QualitySettings.vSyncCount = (int)(Screen.currentResolution.refreshRateRatio.value / 45);
-            Application.targetFrameRate = 60;
 #endif
 		}
 
@@ -152,13 +140,10 @@ namespace Boot
                      () => (new[] {Constants.MainMenuScene, Constants.CoreScene, Constants.UIScene}, null)),
                     (GameState.MainMenu,
                      GameState.Gameplay,
-                     () => (ScenesToLoadFromMainMenuToGameplay(), new[] {Constants.MainMenuScene})),
+                     () => (null, new[] {Constants.MainMenuScene})),
                     (GameState.Gameplay,
                      GameState.MainMenu,
-                     () => (new[] {Constants.MainMenuScene}, ScenesToUnloadFromGameplayToMainMenu())),
-                    (GameState.Gameplay,
-                     GameState.Gameplay,
-                     ScenesToLoadUnloadFromGameplayToGameplay)
+                     () => (new[] {Constants.MainMenuScene}, ScenesToUnloadFromGameplayToMainMenu()))
                 },
                 new (GameState, Action?, Action?)[]
                 {
@@ -212,11 +197,6 @@ namespace Boot
             UIViewModel.GameplayOnExit();
         }
 
-        static int[]? ScenesToLoadFromMainMenuToGameplay()
-        {
-            return null;
-        }
-
         /// <summary>
         /// Returns ids of all currently open scenes except for <see cref="Constants.CoreScene" />, <see cref="Constants.MainMenuScene" />
         /// and <see cref="Constants.UIScene" />
@@ -236,18 +216,6 @@ namespace Boot
             }
 
             return scenesToUnload.ToArray();
-        }
-
-        static (int[]? scenesToLoad, int[]? scenesToUnload) ScenesToLoadUnloadFromGameplayToGameplay()
-        {
-            if (CoreData.CurrentLevel == Level.HubLocation)
-            {
-                CoreData.CurrentLevel += 1;
-                return (new[] {(int)CoreData.CurrentLevel}, new[] {(int)CoreData.CurrentLevel - 1});
-            }
-
-            CoreData.CurrentLevel = Level.Level0;
-            return (new[] {(int)Level.Level0}, new[] {(int)Level.HubLocation});
         }
     }
 }

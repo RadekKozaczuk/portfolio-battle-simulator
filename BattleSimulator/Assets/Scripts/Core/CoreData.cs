@@ -1,4 +1,5 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System;
 using Core.Enums;
 using Core.Models;
 using Unity.Collections;
@@ -13,7 +14,7 @@ namespace Core
     /// </summary>
     public static class CoreData
     {
-        public static Vector3 CenterOfArmies;
+        public static float2 CenterOfArmies;
         public static Level CurrentLevel;
 
         public static NativeArray<float2> UnitCurrPos;
@@ -26,11 +27,13 @@ namespace Core
         // initially size = 10, does upscale when needed
         public static NativeArray<float2> ProjectileCurrPos = new(10, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
 
-        public static unsafe UnitModel*[] UnitSpans;
+        //public static Memory<UnitModel>[] UnitMemoryArray;
 
         /// <summary>
         /// Contains all the units from all armies.
         /// </summary>
-        public static UnitModel[] Models;
+        public static UnitModel[] Units;
+
+        public static ProjectileModel[] Projectiles;
     }
 }

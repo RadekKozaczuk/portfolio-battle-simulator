@@ -146,9 +146,9 @@ namespace Core.Services
                             ValidateAccessModifier(type, type.Namespace);
                         }
 
-                        if (type.Name.EndsWith("System"))
+                        if (type.Name.EndsWith("Service"))
                         {
-                            ValidateNamespace(type, "Systems", type.Namespace);
+                            ValidateNamespace(type, "Services", type.Namespace);
                             ValidateAccessModifier(type, type.Namespace);
                         }
 
@@ -179,7 +179,7 @@ namespace Core.Services
                             continue;
 
                         //collect all used methods with react attribute
-                        if (type.Name.EndsWith("Controller") || type.Name.EndsWith("System"))
+                        if (type.Name.EndsWith("Controller") || type.Name.EndsWith("Service"))
                             if (method.CustomAttributes.Any(e => e.AttributeType.Name == "ReactAttribute"))
                                 usedSignals.Add(method.Name[2..]);
 
@@ -259,9 +259,6 @@ namespace Core.Services
             // - don't validate 'Core' and 'Shared' assembly
             // - don't validate Systems in 'DataOriented' assembly
             if (namespaceName.Contains("Core") || namespaceName.Contains("Shared"))
-                return;
-
-            if (namespaceName.Contains("DataOriented") && type.Name.Contains("System"))
                 return;
 
             if (type.IsPublic)

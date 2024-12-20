@@ -49,7 +49,7 @@ namespace GameLogic.ViewModels
 
         public static void InitializeBattleModel(List<ArmyData> armies)
         {
-            GameLogicMainController.InitializeDataModel(armies);
+            _gameLogicMainController.InitializeDataModel(armies);
         }
     }
 }

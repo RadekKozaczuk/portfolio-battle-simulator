@@ -1,15 +1,17 @@
-﻿using UnityEngine;
+﻿using Unity.Mathematics;
 
 namespace Core.Models
 {
     public struct UnitModel
     {
-        public float Health;
+        public int Id;
+        public int ArmyId;
+        public int Health;
 
         /// <summary>
         /// Change to health in the given frame.
         /// </summary>
-        public float HealthDelta;
+        public int HealthDelta;
 
         public float AttackCooldown;
         public int NearestEnemyId;
@@ -18,15 +20,17 @@ namespace Core.Models
         /// True, if the unit attacked this turn.
         /// </summary>
         public bool Attacked;
-        public Vector3 LastIncomingAttackDirection;
+        public float2 LastIncomingAttackDirection;
 
-        public UnitModel(float health)
+        public UnitModel(int id, int armyId, int health)
         {
+            Id = id;
+            ArmyId = armyId;
             Health = health;
             AttackCooldown = 0f;
             NearestEnemyId = int.MinValue;
             Attacked = false;
-            LastIncomingAttackDirection = Vector3.zero;
+            LastIncomingAttackDirection = float2.zero;
             HealthDelta = 0;
         }
     }

@@ -5,9 +5,12 @@ using System.Threading.Tasks;
 using Core;
 using Core.Interfaces;
 using Core.Models;
+using GameLogic.Models;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
@@ -29,61 +32,231 @@ namespace GameLogic.Controllers
         [Preserve]
         GameLogicMainController() { }
 
+        MemoryLayoutModel[] _memLayout;
+
         public void CustomFixedUpdate() { }
 
         public void CustomUpdate()
         {
-            const int NumberOfUnitSpans = 6; // todo: probably number of armies multiplied by number of unit types
-            const int NumberOfProjectileSpans = 3; // todo: most likely equal to the number of projectile throwing units * the number of armies
+            float deltaTime = Time.deltaTime;
 
-            // we iterate as many times as there is memory spans
-            // each unit type is updated in o
-            Parallel.For(0, NumberOfUnitSpans + NumberOfProjectileSpans, spanId =>
+            Parallel.For(0, CoreData.Units.Length, unitId =>
             {
+                ref UnitModel unit = ref CoreData.Units[unitId];
 
+                if (unit.Health <= 0)
+                    return;
+
+                MoveTowardCenter(unit.Id);
+
+                ref MemoryLayoutModel layout = ref _memLayout[unit.ArmyId];
+                Span<UnitModel> allies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                PushAwayFromAllies(ref allies, unit.Id);
+
+                // enemies are in a continues block of memory
+                if (layout.EnemyIndex1 == int.MinValue)
+                {
+                    Span<UnitModel> enemies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                    PushAwayFromEnemiesAndFindNearest(enemies, unit.Id);
+                }
+                else // enemies are spread across two blocks of memory
+                {
+                    Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                    Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+
+                    PushAwayFromEnemiesAndFindNearest(enemies1, unit.Id);
+                    PushAwayFromEnemiesAndFindNearest(enemies2, unit.Id);
+                }
+
+                unit.AttackCooldown -= deltaTime;
+            });
+
+            Parallel.For(0, CoreData.Projectiles.Length, projectileId =>
+            {
+                ref ProjectileModel projectile = ref CoreData.Projectiles[projectileId];
+                ref MemoryLayoutModel layout = ref _memLayout[projectile.ArmyId];
+
+                // enemies are in a continues block of memory
+                if (layout.EnemyIndex1 == int.MinValue)
+                {
+                    Span<UnitModel> enemies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                    UpdateProjectile(projectileId, enemies);
+                }
+                else // enemies are spread across two blocks of memory
+                {
+                    Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                    Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+
+                    UpdateProjectile(projectileId, enemies1);
+                    UpdateProjectile(projectileId, enemies2);
+                }
             });
         }
 
         public void CustomLateUpdate() { }
 
-        public static void InitializeDataModel(List<ArmyData> armies)
+        public void InitializeDataModel(List<ArmyData> armies)
         {
-            int unitCount = 0;
+            Assert.IsTrue(armies.Count >= 2, "There must be at least two armies for the simulation to happen.");
 
-            foreach (ArmyData army in armies)
+            // calculate total unit count
+            int totalUnitCount = CreateNativeArraysAndCalculateTotalUnitCount(armies);
+
+            // first and last memory elements
+            _memLayout = new MemoryLayoutModel[armies.Count];
+            int firstArmyCount = armies[0].TotalUnitCount;
+            _memLayout[0] = new MemoryLayoutModel(
+                0,
+                firstArmyCount,
+                firstArmyCount,
+                totalUnitCount - firstArmyCount);
+
+            int lastArmyCount = armies[^1].TotalUnitCount;
+            _memLayout[armies.Count - 1] = new MemoryLayoutModel(
+                totalUnitCount - lastArmyCount,
+                totalUnitCount,
+                0,
+                totalUnitCount - lastArmyCount);
+
+            // middle memory elements
+            int ongoingTotal = 0;
+            for (int i = 1; i < armies.Count - 2; i++)
             {
-                unitCount += army.Warriors;
-                unitCount += army.Archers;
+                ArmyData army = armies[i];
+                ongoingTotal += armies[i - 1].TotalUnitCount;
+                _memLayout[i] = new MemoryLayoutModel(
+                    0,
+                    ongoingTotal,
+                    ongoingTotal + army.TotalUnitCount,
+                    totalUnitCount,
+                    0,
+                    0);
+            }
+        }
+
+        static int CreateNativeArraysAndCalculateTotalUnitCount(List<ArmyData> armies)
+        {
+            int totalUnitCount = 0;
+
+            for (int i = 0; i < armies.Count - 1; i++)
+                totalUnitCount += armies[i].TotalUnitCount;
+
+            CoreData.UnitCurrPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            CoreData.AttackingEnemyPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            CoreData.Units = new UnitModel[totalUnitCount];
+
+            return totalUnitCount;
+        }
+
+        static void MoveTowardCenter(int unitId)
+        {
+            float2 currPos = CoreData.UnitCurrPos[unitId];
+            float distanceToCenter = math.distance(currPos, CoreData.CenterOfArmies);
+
+            if (distanceToCenter <= 80.0f)
+                return;
+
+            float2 normal = math.normalize(CoreData.CenterOfArmies - currPos);
+            CoreData.UnitCurrPos[unitId] -= normal * (80.0f - distanceToCenter);
+        }
+
+        /// <summary>
+        /// Pushes all units (regardless of their army membership) away from each other.
+        /// </summary>
+        static void PushAwayFromAllies(ref Span<UnitModel> allies, int unitId)
+        {
+            float2 currPos = CoreData.UnitCurrPos[unitId];
+
+            // on allies calculate only pushback
+            for (int i = 0; i < allies.Length; i++)
+            {
+                ref UnitModel otherUnit = ref allies[i];
+
+                if (otherUnit.Health <= 0)
+                    continue;
+
+                float2 otherUnitPos = CoreData.UnitCurrPos[otherUnit.Id];
+                float distance = math.distance(currPos, otherUnitPos);
+
+                if (distance >= 2f)
+                    continue;
+
+                float2 normal = math.normalize(otherUnitPos - currPos);
+                CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
+            }
+        }
+
+        static void PushAwayFromEnemiesAndFindNearest(Span<UnitModel> enemies, int unitId)
+        {
+            float2 currPos = CoreData.UnitCurrPos[unitId];
+
+            // on enemies calculate evasion as well as the nearest unit id
+            float distanceToNearest = float.MaxValue;
+            int nearestEnemyId = int.MinValue;
+            for (int i = 0; i < enemies.Length; i++)
+            {
+                ref UnitModel enemy = ref enemies[i];
+
+                if (enemy.Health <= 0)
+                    continue;
+
+                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id];
+                float distance = math.distance(currPos, enemyCurrPos);
+
+                // find nearest
+                if (distance < distanceToNearest)
+                {
+                    distanceToNearest = distance;
+                    nearestEnemyId = i;
+                }
+
+                if (distance >= 2f)
+                    continue;
+
+                float2 normal = math.normalize(enemyCurrPos - currPos);
+                CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
             }
 
-            CoreData.UnitCurrPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            CoreData.AttackingEnemyPos = new NativeArray<float2>(unitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            // todo: additional check if not overwriting in case of more than 2 armies
+            CoreData.Units[unitId].NearestEnemyId = nearestEnemyId;
+        }
 
-            // for now assume 3 armies, 2 unit types, 50 units each type
-            const int ArmyCountTemp = 3;
-            const int UnitTypeCountTemp = 2;
-            const int UnitCountTemp = 50; // todo: for now constant - may be dynamic in the final version
+        /// <summary>
+        /// Goes through all projectiles and calculate update their state.
+        /// On top of it also update the damage to the hit enemy.
+        /// </summary>
+        void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
+        {
+            ref ProjectileModel model = ref CoreData.Projectiles[projectileId];
 
-            // todo: for now constant may be dynamic in the final version
-            const int TotalNumberOfUnitsPerArmy = UnitTypeCountTemp * UnitCountTemp;
+            if (model.ReadyToBeRecycled)
+                return;
 
-            CoreData.Models = new UnitModel[ArmyCountTemp * UnitTypeCountTemp * UnitCountTemp];
+            model.Position += model.Direction * ProjectileModel.Speed;
 
-            unsafe
+            float2 proPos = CoreData.ProjectileCurrPos[projectileId];
+
+            float distance = math.distance(proPos, model.Target);
+            if (distance < ProjectileModel.Speed)
+                model.OutOfRange = true; // will be destroyed by the end of this frame
+
+            for (int i = 0; i < enemies.Length; i++)
             {
-                CoreData.UnitSpans = new UnitModel*[ArmyCountTemp * UnitTypeCountTemp];
+                ref UnitModel enemyModel = ref enemies[i];
 
-                for (int armyId = 0; armyId < ArmyCountTemp; armyId++)
-                    for (int unitType = 0; unitType < UnitTypeCountTemp; unitType++)
-                    {
-                        Span<UnitModel> span = CoreData.Models.AsSpan(armyId * TotalNumberOfUnitsPerArmy + unitType * UnitCountTemp,
-                                                                      UnitCountTemp);
+                if (enemyModel.Health <= 0)
+                    continue;
 
-                        fixed (UnitModel* ptr = span)
-                        {
-                            CoreData.UnitSpans[armyId * UnitTypeCountTemp + unitType] = ptr;
-                        }
-                    }
+                float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
+                distance = math.distance(proPos, enemyPos);
+
+                // arrow cannot reach the target this frame
+                if (distance >= ProjectileModel.Speed)
+                    continue;
+
+                enemyModel.LastIncomingAttackDirection = proPos - enemyPos;
+                enemyModel.HealthDelta -= model.Attack - 6; // todo: attack should also be taken from the shared data
+                //enemyModel.HealthDelta -= model.Attack - enemyArmy.SharedUnitData[enemyModel.UnitType].Defense; // todo: take from shared data
             }
         }
     }

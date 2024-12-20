@@ -11,6 +11,8 @@ namespace Core.Models
     [CreateAssetMenu(menuName = "Create ArmyModel", fileName = "ArmyModel", order = 0)]
     public class ArmyData : ScriptableObject
     {
+        public int TotalUnitCount => _warriors + _archers;
+
         public Strategy Strategy
         {
             get => _strategy;

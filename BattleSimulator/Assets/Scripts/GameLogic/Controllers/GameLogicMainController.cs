@@ -1,16 +1,13 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core;
 using Core.Interfaces;
 using Core.Models;
 using GameLogic.Models;
 using JetBrains.Annotations;
-using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
@@ -32,13 +29,15 @@ namespace GameLogic.Controllers
         [Preserve]
         GameLogicMainController() { }
 
-        MemoryLayoutModel[] _memLayout;
-
         public void CustomFixedUpdate() { }
 
         public void CustomUpdate()
         {
             float deltaTime = Time.deltaTime;
+
+            return;
+
+            CalculateCenterOfArmies();
 
             Parallel.For(0, CoreData.Units.Length, unitId =>
             {
@@ -49,7 +48,7 @@ namespace GameLogic.Controllers
 
                 MoveTowardCenter(unit.Id);
 
-                ref MemoryLayoutModel layout = ref _memLayout[unit.ArmyId];
+                ref MemoryLayoutModel layout = ref GameLogicData.MemoryLayout[unit.ArmyId];
                 Span<UnitModel> allies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
                 PushAwayFromAllies(ref allies, unit.Id);
 
@@ -69,7 +68,7 @@ namespace GameLogic.Controllers
             Parallel.For(0, CoreData.Projectiles.Length, projectileId =>
             {
                 ref ProjectileModel projectile = ref CoreData.Projectiles[projectileId];
-                ref MemoryLayoutModel layout = ref _memLayout[projectile.ArmyId];
+                ref MemoryLayoutModel layout = ref GameLogicData.MemoryLayout[projectile.ArmyId];
 
                 Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.EnemyIndex1, layout.EnemyLength1);
                 UpdateProjectile(projectileId, enemies1);
@@ -85,57 +84,22 @@ namespace GameLogic.Controllers
 
         public void CustomLateUpdate() { }
 
-        public void InitializeDataModel(List<ArmyData> armies)
+        static void CalculateCenterOfArmies()
         {
-            Assert.IsTrue(armies.Count >= 2, "There must be at least two armies for the simulation to happen.");
+            int unitCount = 0;
+            CoreData.CenterOfArmies = float2.zero;
 
-            // calculate total unit count
-            int totalUnitCount = CreateNativeArraysAndCalculateTotalUnitCount(armies);
-
-            // first and last memory elements
-            _memLayout = new MemoryLayoutModel[armies.Count];
-            int firstArmyCount = armies[0].TotalUnitCount;
-            _memLayout[0] = new MemoryLayoutModel(
-                0,
-                firstArmyCount,
-                firstArmyCount,
-                totalUnitCount - firstArmyCount);
-
-            int lastArmyCount = armies[^1].TotalUnitCount;
-            _memLayout[armies.Count - 1] = new MemoryLayoutModel(
-                totalUnitCount - lastArmyCount,
-                totalUnitCount,
-                0,
-                totalUnitCount - lastArmyCount);
-
-            // middle memory elements
-            int ongoingTotal = 0;
-            for (int i = 1; i < armies.Count - 2; i++)
+            for (int i = 0; i < CoreData.UnitCurrPos.Length; i++)
             {
-                ArmyData army = armies[i];
-                ongoingTotal += armies[i - 1].TotalUnitCount;
-                _memLayout[i] = new MemoryLayoutModel(
-                    0,
-                    ongoingTotal,
-                    ongoingTotal + army.TotalUnitCount,
-                    totalUnitCount,
-                    0,
-                    0);
+                // skip dead units
+                if (CoreData.Units[i].Health <= 0)
+                    continue;
+
+                unitCount++;
+                CoreData.CenterOfArmies += CoreData.UnitCurrPos[i];
             }
-        }
 
-        static int CreateNativeArraysAndCalculateTotalUnitCount(List<ArmyData> armies)
-        {
-            int totalUnitCount = 0;
-
-            for (int i = 0; i < armies.Count - 1; i++)
-                totalUnitCount += armies[i].TotalUnitCount;
-
-            CoreData.UnitCurrPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            CoreData.AttackingEnemyPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-            CoreData.Units = new UnitModel[totalUnitCount];
-
-            return totalUnitCount;
+            CoreData.CenterOfArmies /= unitCount;
         }
 
         static void MoveTowardCenter(int unitId)
@@ -215,7 +179,7 @@ namespace GameLogic.Controllers
         /// Goes through all projectiles and calculate update their state.
         /// On top of it also update the damage to the hit enemy.
         /// </summary>
-        void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
+        static void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
         {
             ref ProjectileModel model = ref CoreData.Projectiles[projectileId];
 

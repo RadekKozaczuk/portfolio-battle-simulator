@@ -3,10 +3,13 @@ using Core;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core.Interfaces;
+using Core.Models;
 using Presentation.Config;
 using Presentation.Interfaces;
 using Presentation.Jobs;
+using Presentation.Views;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Jobs;
 using UnityEngine.Pool;
@@ -28,6 +31,7 @@ namespace Presentation.Controllers
     class PresentationMainController : IInitializable, ICustomFixedUpdate, ICustomUpdate, ICustomLateUpdate
     {
         static readonly ProjectileConfig _projectileConfig;
+        static readonly UnitConfig _unitConfig;
 
         static bool _coreSceneLoaded;
 
@@ -70,5 +74,21 @@ namespace Presentation.Controllers
         public void CustomLateUpdate() { }
 
         internal static void OnCoreSceneLoaded() => _coreSceneLoaded = true;
+
+        [React]
+        static void OnBattleModelCreated()
+        {
+            PresentationData.Units = new IUnit[CoreData.Units.Length];
+
+            for (int i = 0; i < CoreData.Units.Length; i++)
+            {
+                ref UnitModel unit = ref CoreData.Units[i];
+                UnitView prefab = _unitConfig.UnitPrefabs[unit.UnitType];
+                float2 pos = CoreData.UnitCurrPos[i];
+                var v3 = new Vector3(pos.x, 0, pos.y);
+
+                PresentationData.Units[i] = Object.Instantiate(prefab, v3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
+            }
+        }
     }
 }

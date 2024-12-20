@@ -102,19 +102,12 @@ namespace Core.Services
                     // bind type in the container if it is a Controller or a ViewModel
                     if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
                     {
-                        try
-                        {
-                            object instance = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { });
-                            instances.Add(type, instance);
-                            SignalService.AddReactiveInstantiatable(instance);
+                        object instance = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { });
+                        instances.Add(type, instance);
+                        SignalService.AddReactiveInstantiatable(instance);
 
-                            if (typeof(IInitializable).IsAssignableFrom(type))
-                                _initializables.Add((IInitializable)instance);
-                        }
-                        catch (Exception e)
-                        {
-                            int gg = 45;
-                        }
+                        if (typeof(IInitializable).IsAssignableFrom(type))
+                            _initializables.Add((IInitializable)instance);
                     }
                 }
 

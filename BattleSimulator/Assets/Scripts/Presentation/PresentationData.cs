@@ -9,6 +9,7 @@ namespace Presentation
     /// </summary>
     static class PresentationData
     {
+        internal static IUnit[] Units;
         internal static IProjectile[] Projectiles;
 
         internal static TransformAccessArray UnitTransformAccess;

@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
+using UnityEngine;
 
 namespace GameLogic.ViewModels
 {
@@ -13,20 +14,23 @@ namespace GameLogic.ViewModels
     public class GameLogicViewModel
     {
         [Inject]
-        static readonly GameLogicMainController _gameLogicMainController;
+        static readonly GameLogicMainController _mainController;
+
+        [Inject]
+        static readonly InitializeBattleModelController _battleModelController;
 
         [Preserve]
         GameLogicViewModel() { }
 
         public static void CustomUpdate()
         {
-            _gameLogicMainController.CustomUpdate();
+            _mainController.CustomUpdate();
             PresentationViewModel.CustomUpdate();
         }
 
-        public static void CustomFixedUpdate() => _gameLogicMainController.CustomFixedUpdate();
+        public static void CustomFixedUpdate() => _mainController.CustomFixedUpdate();
 
-        public static void CustomLateUpdate() => _gameLogicMainController.CustomLateUpdate();
+        public static void CustomLateUpdate() => _mainController.CustomLateUpdate();
 
         public static void BootingOnExit() { }
 
@@ -43,13 +47,9 @@ namespace GameLogic.ViewModels
         /// </summary>
         public static void QuitGame() { }
 
-        public static void WinMission() => Signals.MissionComplete();
-
-        public static void FailMission() => Signals.MissionFailed();
-
-        public static void InitializeBattleModel(List<ArmyData> armies)
+        public static void InitializeBattleModel(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn)
         {
-            _gameLogicMainController.InitializeDataModel(armies);
+            _battleModelController.InitializeDataModel(armies, leftSpawn, rightSpawn);
         }
     }
 }

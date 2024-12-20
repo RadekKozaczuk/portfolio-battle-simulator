@@ -39,17 +39,5 @@ namespace UI.Controllers
         public void CustomLateUpdate() { }
 
         internal static void OnUISceneLoaded() => _uiSceneLoaded = true;
-
-        [React]
-        static void OnInventoryChanged() { }
-
-        [React]
-        static void OnMissionComplete() { }
-
-        [React]
-        static void OnMissionFailed() { }
-
-        [React]
-        static void OnToggleMuteVoiceChat() { }
     }
 }

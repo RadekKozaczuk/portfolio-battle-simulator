@@ -17,8 +17,6 @@ namespace Presentation.ViewModels
         [Inject]
         static readonly PresentationMainController _presentationMainController;
 
-        static LevelSceneReferenceHolder _level;
-
         [Preserve]
         PresentationViewModel() { }
 
@@ -46,11 +44,25 @@ namespace Presentation.ViewModels
         {
             PresentationSceneReferenceHolder.GameplayCamera.gameObject.SetActive(true);
             PresentationSceneReferenceHolder.MainMenuCamera.gameObject.SetActive(false);
-
-            // load level data
-            _level = GameObject.FindWithTag("LevelSceneReferenceHolder").GetComponent<LevelSceneReferenceHolder>();
         }
 
         public static void GameplayOnExit() { }
+
+        public static void GetSpawnBounds(out Bounds left, out Bounds right)
+        {
+            left = PresentationSceneReferenceHolder.LeftSpawn.bounds;
+            right = PresentationSceneReferenceHolder.RightSpawn.bounds;
+        }
+
+        public static void InitializeBattle()
+        {
+            /*Vector3 pos = Utils.GetRandomPosInBounds(instanceBounds);
+
+            IUnitView unit = Instantiate(unitPrefabs[i], pos, Quaternion.identity);
+            unit.Renderer.material.color = color;
+
+            models[index] = new UnitModel(unitData[i].Health, pos, i);
+            unitView[index] = unit;*/
+        }
     }
 }

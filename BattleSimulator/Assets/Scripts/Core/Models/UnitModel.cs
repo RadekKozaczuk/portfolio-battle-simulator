@@ -5,6 +5,7 @@ namespace Core.Models
     public struct UnitModel
     {
         public int Id;
+        public int UnitType;
         public int ArmyId;
         public int Health;
 
@@ -22,9 +23,10 @@ namespace Core.Models
         public bool Attacked;
         public float2 LastIncomingAttackDirection;
 
-        public UnitModel(int id, int armyId, int health)
+        public UnitModel(int id, int unitType, int armyId, int health)
         {
             Id = id;
+            UnitType = unitType;
             ArmyId = armyId;
             Health = health;
             AttackCooldown = 0f;

@@ -7,7 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Scenes/BootScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    guid: c12ac6d90f5ed4e46bb26eab687fd7be
   - enabled: 1
     path: Assets/Scenes/CoreScene.unity
     guid: 0849e1928be0cbf42a315c5d895d89b9
@@ -17,10 +17,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/UIScene.unity
     guid: ad48878816800f54394151a9d08fc824
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Levels/HubScene.unity
     guid: 78e97315bfae6dc4eab84bc226ff6748
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Levels/Level0Scene.unity
     guid: 81322ad4fa838ef4285dd9df9ef71755
   m_configObjects:

@@ -38,7 +38,12 @@ namespace GameLogic.Controllers
         {
             CoreData.UnitCurrPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             CoreData.AttackingEnemyPos = new NativeArray<float2>(totalUnitCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+
+            for (int i = 0; i < CoreData.AttackingEnemyPos.Length; i++)
+                CoreData.AttackingEnemyPos[i] = new float2(float.MinValue, float.MinValue);
+
             CoreData.Units = new UnitModel[totalUnitCount];
+            CoreData.Projectiles = new ProjectileModel[10]; // initially 10, does upscale when needed
         }
 
         static void CreateMemoryLayout(List<ArmyModel> armies, int totalUnitCount)
@@ -55,7 +60,7 @@ namespace GameLogic.Controllers
             int lastArmyCount = armies[^1].TotalUnitCount;
             GameLogicData.MemoryLayout[armies.Count - 1] = new MemoryLayoutModel(
                 totalUnitCount - lastArmyCount,
-                totalUnitCount,
+                lastArmyCount,
                 0,
                 totalUnitCount - lastArmyCount);
 

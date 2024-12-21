@@ -28,8 +28,6 @@ namespace Presentation.ViewModels
 
         public static void CustomLateUpdate() => _presentationMainController.CustomLateUpdate();
 
-        public static void OnCoreSceneLoaded() => PresentationMainController.OnCoreSceneLoaded();
-
         public static void BootingOnExit() { }
 
         public static void MainMenuOnEntry()

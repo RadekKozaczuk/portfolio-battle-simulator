@@ -53,7 +53,6 @@ namespace Boot
                 {
                     SceneManager.UnloadSceneAsync(Constants.BootScene);
                     _isCoreSceneLoaded = true;
-                    PresentationViewModel.OnCoreSceneLoaded();
                 }
 
                 if (scene.buildIndex == Constants.UIScene)
@@ -78,12 +77,6 @@ namespace Boot
             Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.ScriptOnly);
             Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.ScriptOnly);
             Application.SetStackTraceLogType(LogType.Exception, StackTraceLogType.ScriptOnly);
-
-            // by default, we keep the frame rate low (>=30) to keep the temperature low
-            // feel free to change these values when the game gets closer to the release
-#if UNITY_EDITOR
-            Application.targetFrameRate = 30;
-#endif
 		}
 
 		void FixedUpdate()

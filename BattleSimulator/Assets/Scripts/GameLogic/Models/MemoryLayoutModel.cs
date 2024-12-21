@@ -2,6 +2,7 @@
 
 namespace GameLogic.Models
 {
+    // todo use Memory<T> in the future
     internal readonly struct MemoryLayoutModel
     {
         internal readonly int AllyIndex, AllyLength, EnemyIndex1, EnemyLength1, EnemyIndex2, EnemyLength2;

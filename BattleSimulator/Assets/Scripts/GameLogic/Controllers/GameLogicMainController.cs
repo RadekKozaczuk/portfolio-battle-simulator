@@ -2,8 +2,10 @@
 using System;
 using System.Threading.Tasks;
 using Core;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
+using Core.Services;
 using GameLogic.Models;
 using JetBrains.Annotations;
 using Unity.Mathematics;
@@ -33,13 +35,17 @@ namespace GameLogic.Controllers
 
         public void CustomUpdate()
         {
-            float deltaTime = Time.deltaTime;
+            if (GameStateService.CurrentState != GameState.Gameplay)
+                return;
 
-            return;
+            float deltaTime = Time.deltaTime;
 
             CalculateCenterOfArmies();
 
-            Parallel.For(0, CoreData.Units.Length, unitId =>
+            // todo: Parallel For appears to be slower than single-threaded execution
+            // todo: to check if splitting the execution into very small amount of tasks (f.e. 2 or 4) would be beneficial 
+            //Parallel.For(0, CoreData.Units.Length, unitId =>
+            for (int unitId = 0; unitId < CoreData.Units.Length; unitId++)
             {
                 ref UnitModel unit = ref CoreData.Units[unitId];
 
@@ -52,20 +58,20 @@ namespace GameLogic.Controllers
                 Span<UnitModel> allies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
                 PushAwayFromAllies(ref allies, unit.Id);
 
-                Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.EnemyIndex1, layout.EnemyLength1);
                 PushAwayFromEnemiesAndFindNearest(enemies1, unit.Id);
 
                 // true if enemy are stored in a continues block of memory
                 if (layout.EnemyIndex2 == int.MinValue)
                     return;
 
-                Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
+                Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.EnemyIndex2, layout.EnemyLength2);
                 PushAwayFromEnemiesAndFindNearest(enemies2, unit.Id);
 
                 unit.AttackCooldown -= deltaTime;
-            });
+            }//);
 
-            Parallel.For(0, CoreData.Projectiles.Length, projectileId =>
+            /*Parallel.For(0, CoreData.Projectiles.Length, projectileId =>
             {
                 ref ProjectileModel projectile = ref CoreData.Projectiles[projectileId];
                 ref MemoryLayoutModel layout = ref GameLogicData.MemoryLayout[projectile.ArmyId];
@@ -79,7 +85,7 @@ namespace GameLogic.Controllers
 
                 Span<UnitModel> enemies2 = CoreData.Units.AsSpan(layout.EnemyIndex2, layout.EnemyLength2);
                 UpdateProjectile(projectileId, enemies2);
-            });
+            });*/
         }
 
         public void CustomLateUpdate() { }
@@ -135,8 +141,14 @@ namespace GameLogic.Controllers
                 if (distance >= 2f)
                     continue;
 
-                float2 normal = math.normalize(otherUnitPos - currPos);
-                CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
+                // comparing with yourself would result in NaN
+                float2 difference = otherUnitPos - currPos;
+                // ReSharper disable once InvertIf
+                if (math.any(otherUnitPos - currPos))
+                {
+                    float2 normal = math.normalize(difference);
+                    CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
+                }
             }
         }
 
@@ -161,7 +173,7 @@ namespace GameLogic.Controllers
                 if (distance < distanceToNearest)
                 {
                     distanceToNearest = distance;
-                    nearestEnemyId = i;
+                    nearestEnemyId = enemy.Id;
                 }
 
                 if (distance >= 2f)

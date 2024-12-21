@@ -26,20 +26,20 @@ namespace Presentation.Jobs
         [ReadOnly]
         public NativeArray<float2> AttackingEnemyPos;
 
-        // The code actually running on the job
         public void Execute(int index, TransformAccess transform)
         {
             // unit is dead
             if (Mathf.Approximately(AttackingEnemyPos[index].x, float.MinValue))
                 return;
 
+            float2 pos = Positions[index];
             if (math.any(AttackingEnemyPos[index] == float2.zero))
             {
-                float2 dir = Positions[index] - AttackingEnemyPos[index];
+                float2 dir = pos - AttackingEnemyPos[index];
                 transform.rotation = Quaternion.Euler(dir.x, 0, dir.y);
             }
 
-            transform.position = new Vector3(Positions[index].x, 0, Positions[index].y);
+            transform.position = new Vector3(pos.x, 0, pos.y);
         }
     }
 }

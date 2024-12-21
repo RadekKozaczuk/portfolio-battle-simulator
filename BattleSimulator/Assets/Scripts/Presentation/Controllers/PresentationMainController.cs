@@ -1,9 +1,11 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using Core;
+using Core.Enums;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core.Interfaces;
 using Core.Models;
+using Core.Services;
 using Presentation.Config;
 using Presentation.Interfaces;
 using Presentation.Jobs;
@@ -33,7 +35,7 @@ namespace Presentation.Controllers
         static readonly ProjectileConfig _projectileConfig;
         static readonly UnitConfig _unitConfig;
 
-        static bool _coreSceneLoaded;
+        static bool _loadingFinished;
 
         readonly ObjectPool<IProjectile> _projectilePool = new(
             () => Object.Instantiate(_projectileConfig.ProjectilePrefab, PresentationSceneReferenceHolder.ProjectileContainer),
@@ -49,11 +51,8 @@ namespace Presentation.Controllers
 
         public void CustomUpdate()
         {
-            if (!_coreSceneLoaded)
+            if (!_loadingFinished)
                 return;
-
-            // todo: for now so the code launches without bugs
-            return;
 
             // update units
             var job1 = new UpdateUnitTransformJob
@@ -63,32 +62,47 @@ namespace Presentation.Controllers
             };
             JobHandle handle1 = job1.Schedule(PresentationData.UnitTransformAccess);
 
+            // todo: bugged - array not created yet
             // update projectiles
-            var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
-            JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);
+            /*var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
+            JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);*/
 
             handle1.Complete();
-            handle2.Complete();
+            //handle2.Complete();
+
+            // update camera
+            var centerOfArmies = new Vector3(CoreData.CenterOfArmies.x, 0, CoreData.CenterOfArmies.y);
+            Camera camera = PresentationSceneReferenceHolder.GameplayCamera;
+            Vector3 pos = camera.transform.position;
+            Vector3 forwardTarget = (centerOfArmies - pos).normalized;
+            PresentationSceneReferenceHolder.GameplayCamera.transform.forward += (forwardTarget - pos) * 0.1f;
         }
 
         public void CustomLateUpdate() { }
 
-        internal static void OnCoreSceneLoaded() => _coreSceneLoaded = true;
-
         [React]
         static void OnBattleModelCreated()
         {
-            PresentationData.Units = new IUnit[CoreData.Units.Length];
+            int size = CoreData.Units.Length;
+            PresentationData.Units = new IUnit[size];
+            var transforms = new Transform[size];
 
-            for (int i = 0; i < CoreData.Units.Length; i++)
+            for (int i = 0; i < size; i++)
             {
                 ref UnitModel unit = ref CoreData.Units[i];
                 UnitView prefab = _unitConfig.UnitPrefabs[unit.UnitType];
                 float2 pos = CoreData.UnitCurrPos[i];
                 var v3 = new Vector3(pos.x, 0, pos.y);
 
+                UnitView view = Object.Instantiate(prefab, v3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
+                transforms[i] = view.transform;
+
                 PresentationData.Units[i] = Object.Instantiate(prefab, v3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
             }
+
+            PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);
+
+            _loadingFinished = true;
         }
     }
 }

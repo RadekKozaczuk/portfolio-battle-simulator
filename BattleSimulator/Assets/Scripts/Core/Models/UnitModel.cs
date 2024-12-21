@@ -4,6 +4,15 @@ namespace Core.Models
 {
     public struct UnitModel
     {
+        // todo: convert all these variables into one int
+        // todo: id would take 10 bits max = 1024
+        // todo: unitType - 2 bits = 4 combanations
+        // todo: armyId - 2 bits = 4 comb
+        // todo: health - 10 bits = 1024
+        // todo: attacked - 1 bit
+
+        // todo: so health and healthDelta -> one int
+        // todo: id, unit Type, armyId and attacked -> one int
         public int Id;
         public int UnitType;
         public int ArmyId;

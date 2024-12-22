@@ -24,15 +24,8 @@ namespace GameLogic.Controllers
         static void Basic(int unitId)
         {
             ref UnitModel model = ref CoreData.Units[unitId];
-            try
-            {
-                ref UnitModel enemyModel = ref CoreData.Units[model.NearestEnemyId];
-                Logic(ref model, ref enemyModel);
-            }
-            catch (Exception e)
-            {
-                int dfgdfg = 5;
-            }
+            ref UnitModel enemyModel = ref CoreData.Units[model.NearestEnemyId];
+            Logic(ref model, ref enemyModel);
         }
 
         static void Defensive(int unitId)

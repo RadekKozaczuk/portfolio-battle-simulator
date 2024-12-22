@@ -3,6 +3,10 @@ using Core;
 using Core.Models;
 using Unity.Mathematics;
 
+#if DEVELOPMENT_BUILD
+using UnityEngine.Assertions;
+#endif
+
 namespace GameLogic
 {
     static class SharedUnitBehaviors

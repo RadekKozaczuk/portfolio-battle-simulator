@@ -1,5 +1,6 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
+using System.Runtime.CompilerServices;
 using Core;
 using Core.Enums;
 using Core.Interfaces;
@@ -12,6 +13,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Scripting;
 
+[assembly:InternalsVisibleTo("Tests")]
 namespace GameLogic.Controllers
 {
     /// <summary>

@@ -5,7 +5,6 @@ using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
-using UnityEngine;
 using UnityEngine.Scripting;
 #if DEVELOPMENT_BUILD
 using UnityEngine.Assertions;

@@ -26,7 +26,15 @@ namespace GameLogic.Controllers
         {
             Assert.IsTrue(armies.Count >= 2, "There must be at least two armies for the simulation to happen.");
 
+            // todo: for now here
+            CoreData.UnitStats = new[]
+            {
+                new UnitStatsModel(50, 5, 20, 2.5f, 1f, 0f, 0.1f, 20f),
+                new UnitStatsModel(5, 0, 10, 20f, 5f, 1f, 0.1f, 20f)
+            };
+
             int totalUnitCount = armies.Sum(army => army.TotalUnitCount);
+            CoreData.ArmyCenters = new float2[armies.Count];
             CreateNativeArrays(totalUnitCount);
             CreateMemoryLayout(armies, totalUnitCount);
             CreateUnitModels(armies, leftSpawn, rightSpawn);

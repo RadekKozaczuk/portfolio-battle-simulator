@@ -47,9 +47,7 @@ namespace GameLogic.ViewModels
         /// </summary>
         public static void QuitGame() { }
 
-        public static void InitializeBattleModel(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn)
-        {
+        public static void InitializeBattleModel(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn) =>
             _battleModelController.InitializeDataModel(armies, leftSpawn, rightSpawn);
-        }
     }
 }

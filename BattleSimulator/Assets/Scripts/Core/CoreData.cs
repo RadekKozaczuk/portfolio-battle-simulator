@@ -12,6 +12,7 @@ namespace Core
     public static class CoreData
     {
         public static float2 CenterOfArmies;
+        public static float2[] ArmyCenters;
         public static NativeArray<float2> UnitCurrPos;
 
         /// <summary>
@@ -30,5 +31,7 @@ namespace Core
         public static UnitModel[] Units;
 
         public static ProjectileModel[] Projectiles;
+
+        public static UnitStatsModel[] UnitStats;
     }
 }

@@ -51,16 +51,5 @@ namespace Presentation.ViewModels
             left = PresentationSceneReferenceHolder.LeftSpawn.bounds;
             right = PresentationSceneReferenceHolder.RightSpawn.bounds;
         }
-
-        public static void InitializeBattle()
-        {
-            /*Vector3 pos = Utils.GetRandomPosInBounds(instanceBounds);
-
-            IUnitView unit = Instantiate(unitPrefabs[i], pos, Quaternion.identity);
-            unit.Renderer.material.color = color;
-
-            models[index] = new UnitModel(unitData[i].Health, pos, i);
-            unitView[index] = unit;*/
-        }
     }
 }

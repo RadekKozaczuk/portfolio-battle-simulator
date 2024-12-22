@@ -1,11 +1,9 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using Core;
-using Core.Enums;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core.Interfaces;
 using Core.Models;
-using Core.Services;
 using Presentation.Config;
 using Presentation.Interfaces;
 using Presentation.Jobs;
@@ -57,8 +55,7 @@ namespace Presentation.Controllers
             // update units
             var job1 = new UpdateUnitTransformJob
             {
-                Positions = CoreData.UnitCurrPos,
-                AttackingEnemyPos = CoreData.AttackingEnemyPos
+                Positions = CoreData.UnitCurrPos
             };
             JobHandle handle1 = job1.Schedule(PresentationData.UnitTransformAccess);
 
@@ -91,13 +88,13 @@ namespace Presentation.Controllers
             {
                 ref UnitModel unit = ref CoreData.Units[i];
                 UnitView prefab = _unitConfig.UnitPrefabs[unit.UnitType];
-                float2 pos = CoreData.UnitCurrPos[i];
-                var v3 = new Vector3(pos.x, 0, pos.y);
+                float2 pos2 = CoreData.UnitCurrPos[i];
+                var pos3 = new Vector3(pos2.x, 0, pos2.y);
 
-                UnitView view = Object.Instantiate(prefab, v3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
+                UnitView view = Object.Instantiate(prefab, pos3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
                 transforms[i] = view.transform;
 
-                PresentationData.Units[i] = Object.Instantiate(prefab, v3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
+                PresentationData.Units[i] = Object.Instantiate(prefab, pos3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
             }
 
             PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);

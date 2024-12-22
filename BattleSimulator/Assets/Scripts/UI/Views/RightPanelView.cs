@@ -24,16 +24,16 @@ namespace UI.Views
 
         void Awake()
         {
-            _start.onClick.AddListener(Start);
-            _quit.onClick.AddListener(Quit);
+            _start.onClick.AddListener(StartAction);
+            _quit.onClick.AddListener(QuitAction);
         }
 
-        static void Start()
+        static void StartAction()
         {
             var fakeArmy = new List<ArmyModel>()
             {
-                new (100, 100, Strategy.Basic, Strategy.Basic),
-                new (100, 100, Strategy.Basic, Strategy.Basic)
+                new (100, 0, Strategy.Basic, Strategy.Basic),
+                new (100, 0, Strategy.Basic, Strategy.Basic)
             };
 
             PresentationViewModel.GetSpawnBounds(out Bounds left, out Bounds right);
@@ -41,7 +41,7 @@ namespace UI.Views
             GameStateService.ChangeState(GameState.Gameplay);
         }
 
-        static void Quit()
+        static void QuitAction()
         {
 #if UNITY_EDITOR
             EditorApplication.isPlaying = false;

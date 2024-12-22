@@ -40,20 +40,6 @@ namespace Core.Services
         TransitionDto? _transition;
         int[]? _additionalScenesToUnload;
 
-        /// <summary>
-        /// This list must be empty between request calls
-        /// </summary>
-        readonly List<int> _scenesToBeDisabled = new();
-
-        /// <summary>
-        /// Must be empty between request calls.
-        /// </summary>
-        readonly Dictionary<int, List<int>> _disabledRootsPerScene = new();
-
-        /// <summary>
-        /// 'betweenLoadAndUnload' action is the best suitable for scenarios when we need to just when scenes stopped loading but right before they start to unload.
-        /// Great example would be when we go from a level to a level and the level we are leaving is going to disappear.
-        /// </summary>
 		public StateService(
             IReadOnlyList<(TState from, TState to, Func<(int[]?, int[]?)>? scenesToLoadUnload)> transitions,
             IReadOnlyList<(TState state, Action? onEntry, Action? onExit)> states
@@ -67,8 +53,6 @@ namespace Core.Services
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             _logRequestedStateChange = logRequestedStateChange;
 #endif
-
-            SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
         /// <summary>
@@ -113,10 +97,6 @@ namespace Core.Services
             int[]? additionalScenesToUnload = null, (TTransitionParameter key, object value)[]? parameters = null,
             int[]? scenesToSynchronize = null)
         {
-            if (scenesToSynchronize != null)
-                foreach (int id in scenesToSynchronize)
-                    _scenesToBeDisabled.Add(id);
-
             UpdateParameters(parameters);
             List<TransitionDto> transitions = _transitions.FindAll(t => Equal(t.From, _currentState) && Equal(t.To, state));
 
@@ -168,8 +148,6 @@ namespace Core.Services
 
             // execute state's on-entry code
             _states.TryGetValue(transition.To, out StateDto toState);
-
-            EnableRootsIfAny();
 
             if (scenesToLoadUnload != null)
                 if (scenesToLoadUnload.Value.scenesToUnload is { Length: > 0 } || additionalScenesToUnload is { Length: > 0})
@@ -271,61 +249,6 @@ namespace Core.Services
         {
             while (!operations.All(t => t.isDone))
                 await Awaitable.NextFrameAsync();
-        }
-
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            if (_scenesToBeDisabled.Count <= 0)
-                return;
-
-            if (!_scenesToBeDisabled.Contains(scene.buildIndex))
-                return;
-
-            List<int> ids = new ();
-            GameObject[] roots = scene.GetRootGameObjects();
-            foreach (GameObject root in roots)
-                // add only if originally enabled
-                if (root.activeSelf)
-                {
-                    root.SetActive(false);
-                    ids.Add(root.GetInstanceID());
-                }
-
-            _disabledRootsPerScene.Add(scene.buildIndex, ids);
-        }
-
-        /// <summary>
-        /// Enables roots previously disabled
-        /// </summary>
-        void EnableRootsIfAny()
-        {
-            // how many scenes are loaded
-            int sceneCount = SceneManager.sceneCount;
-
-            // iterate over all loaded scenes
-            for (int i = 0; i < sceneCount; i++)
-            {
-                Scene scene = SceneManager.GetSceneAt(i);
-
-                // if scene is in to_be_synced list
-                if (!_scenesToBeDisabled.Contains(scene.buildIndex))
-                    continue;
-
-                Debug.Log($"Enabled Roots for scene {scene.buildIndex}, frame: {Time.frameCount}");
-
-                // get roots to be activated
-                _ = _disabledRootsPerScene.TryGetValue(scene.buildIndex, out List<int> rootIds);
-
-                // iterate over all roots
-                GameObject[] roots = scene.GetRootGameObjects();
-                foreach (GameObject root in roots)
-                    // if previously deactivated activate it
-                    if (rootIds!.Contains(root.GetInstanceID()))
-                        root.SetActive(true);
-            }
-
-            _scenesToBeDisabled.Clear();
-            _disabledRootsPerScene.Clear();
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

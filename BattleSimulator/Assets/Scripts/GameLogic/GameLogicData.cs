@@ -6,5 +6,7 @@ namespace GameLogic
     static class GameLogicData
     {
         internal static MemoryLayoutModel[] MemoryLayout;
+
+        internal static float DeltaTime;
     }
 }

@@ -10,11 +10,14 @@
         public readonly int Attack;
         public readonly float AttackRange;
         public readonly float AttackCooldown;
-        public readonly int Speed;
+        public readonly float Speed;
         public readonly float DistanceToEnemyCenterThreshold;
 
+
+        public readonly float CooldownDifference;
+
         public UnitStatsModel(int health, int defense, int attack, float attackRange,
-            float attackCooldown, int speed, float distanceToEnemyCenterThreshold)
+            float attackCooldown, float postAttackDelay, float speed, float distanceToEnemyCenterThreshold)
         {
             Health = health;
             Defense = defense;
@@ -23,6 +26,9 @@
             AttackCooldown = attackCooldown;
             Speed = speed;
             DistanceToEnemyCenterThreshold = distanceToEnemyCenterThreshold;
+
+
+            CooldownDifference = 45f;
         }
     }
 }

@@ -19,26 +19,13 @@ namespace Presentation.Jobs
         [ReadOnly]
         public NativeArray<float2> Positions;
 
-        /// <summary>
-        /// If the corresponding unit was attacked by one or more enemies this frame it holds the position of the last one,
-        /// <see cref="float2.zero"/> otherwise.
-        /// </summary>
-        [ReadOnly]
-        public NativeArray<float2> AttackingEnemyPos;
-
         public void Execute(int index, TransformAccess transform)
         {
-            // unit is dead
-            if (Mathf.Approximately(AttackingEnemyPos[index].x, float.MinValue))
-                return;
+            // unit is dead todo: something is wrong with this value
+            //if (Mathf.Approximately(AttackingEnemyPos[index].x, float.MinValue))
+            //    return;
 
             float2 pos = Positions[index];
-            if (math.any(AttackingEnemyPos[index] == float2.zero))
-            {
-                float2 dir = pos - AttackingEnemyPos[index];
-                transform.rotation = Quaternion.Euler(dir.x, 0, dir.y);
-            }
-
             transform.position = new Vector3(pos.x, 0, pos.y);
         }
     }

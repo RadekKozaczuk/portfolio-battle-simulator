@@ -11,10 +11,7 @@ namespace Core
 {
     static class SignalDispatch
     {
-        // todo: in the future add DEVELOPMENT_BUILD flag
-        // todo: for now it is not possible to assert signals when DOTS and IL2CPP are in use
-        // todo: as the call stack varies from what is present in the Editor 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         static readonly Dictionary<string, int> _lookup = new ()
         {
             ["Boot"] = 0,
@@ -42,26 +39,7 @@ namespace Core
 
         internal static void Intercept(int signalId, string signalName, params object[] args)
         {
-            /* === Call stack example ===
-            Normal Execution:
-            Shared
-            Shared
-            Core
-            Presentation <-- place where the signal was sent
-            Boot
-
-            Listener Execution:
-            Shared
-            Shared
-            Core <-- place where the signal was sent
-            Call
-            Call
-            */
-
-            // todo: in the future add DEVELOPMENT_BUILD flag
-            // todo: for now it is not possible to assert signals when DOTS and IL2CPP are in use
-            // todo: as the call stack varies from what is present in the Editor 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Delegate reactMethods = SignalService.GetReactMethods(signalId);
             Delegate[] delegates = reactMethods.GetInvocationList();
 

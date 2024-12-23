@@ -4,7 +4,6 @@ using Core;
 using Core.Interfaces;
 using Core.Models;
 using GameLogic.Interfaces;
-using GameLogic.Models;
 using JetBrains.Annotations;
 using Unity.Mathematics;
 using UnityEngine;
@@ -32,15 +31,14 @@ namespace GameLogic.Controllers
         readonly float2[] _armyCenters;
         IBattleModel _model;
 
-        void Initialize(BattleModel model)
+        // todo: should be manually called
+        void Initialize(IBattleModel model)
         {
             _model = model;
         }
 
         public void CustomUpdate()
         {
-            //Span<UnitModel> units = _model.GetUnits();
-
             float2 sum = float2.zero;
             float2 partialSum = float2.zero;
             for (int armyId = 0; armyId < _armyCenters.Length; armyId++)
@@ -48,9 +46,7 @@ namespace GameLogic.Controllers
                 Span<UnitModel> units = _model.GetUnits(armyId);
 
                 for (int i = 0; i < units.Length; i++)
-                {
                     partialSum += CoreData.UnitCurrPos[units[i].Id];
-                }
 
                 _armyCenters[armyId] = partialSum;
                 sum += partialSum;

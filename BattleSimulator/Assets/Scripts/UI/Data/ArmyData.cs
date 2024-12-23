@@ -4,29 +4,24 @@ using UnityEngine;
 
 namespace UI.Data
 {
-    /// <summary>
-    /// ScriptableObject containing the data of an army
-    /// for simplicity's sake the use-case of updating the SO manually has been discarded,
-    /// and therefore the usage of ReadOnlyAttribute
-    /// </summary>
-    [CreateAssetMenu(menuName = "Create ArmyModel", fileName = "ArmyModel", order = 0)]
-    public class ArmyData : ScriptableObject
+    [CreateAssetMenu(fileName = "ArmyData", menuName = "Data/UI/ArmyData")]
+    class ArmyData : ScriptableObject
     {
-        public int TotalUnitCount => _warriors + _archers;
+        internal int TotalUnitCount => _warriors + _archers;
 
-        public Strategy Strategy
+        internal Strategy Strategy
         {
             get => _strategy;
             set => _strategy = value;
         }
 
-        public int Warriors
+        internal int Warriors
         {
             get => _warriors;
             set => _warriors = value;
         }
 
-        public int Archers
+        internal int Archers
         {
             get => _archers;
             set => _archers = value;

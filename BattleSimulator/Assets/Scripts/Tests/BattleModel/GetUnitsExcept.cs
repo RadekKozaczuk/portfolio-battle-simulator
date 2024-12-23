@@ -109,7 +109,7 @@ namespace Tests.BattleModel
 
             Memory<UnitModel>[] units2 = battle.GetUnitsExcept(1, 20);
             Memory<UnitModel>[] warriors2 = battle.GetUnitsExcept(1, 0, 20);
-            //Memory<UnitModel>[] archers2 = battle.GetUnitsExcept(1, 1, 20);
+            Memory<UnitModel>[] archers2 = battle.GetUnitsExcept(1, 1, 20);
 
             Span<UnitModel> unitsSpan1 = units1[0].Span;
             Span<UnitModel> warriorsSpan1 = warriors1[0].Span;
@@ -117,7 +117,7 @@ namespace Tests.BattleModel
 
             Span<UnitModel> unitsSpan2 = units2[0].Span;
             Span<UnitModel> warriorsSpan2 = warriors2[0].Span;
-            //Span<UnitModel> archersSpan2 = archers2[0].Span;
+            Span<UnitModel> archersSpan2 = archers2[0].Span;
 
             // 3. Assert
             Assert.That(units1.Length == 1);
@@ -125,8 +125,16 @@ namespace Tests.BattleModel
             Assert.That(archers1.Length == 1);
 
             Assert.That(units2.Length == 1);
-            Assert.That(warriors2.Length == 0);
-            //Assert.That(archers2.Length == 1);
+            Assert.That(warriors2.Length == 1);
+            Assert.That(archers2.Length == 1);
+
+            Assert.That(unitsSpan1.Length == 20);
+            Assert.That(warriorsSpan1.Length == 10);
+            Assert.That(archersSpan1.Length == 10);
+
+            Assert.That(unitsSpan2.Length == 29);
+            Assert.That(warriorsSpan2.Length == 14);
+            Assert.That(archersSpan2.Length == 15);
         }
     }
 }

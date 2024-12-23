@@ -30,7 +30,7 @@ namespace UI.Views
 
         static void StartAction()
         {
-            var fakeArmy = new List<ArmyModel>()
+            var fakeArmy = new List<ArmyModel>
             {
                 new (100, 0, Strategy.Basic, Strategy.Basic),
                 new (100, 0, Strategy.Basic, Strategy.Basic)

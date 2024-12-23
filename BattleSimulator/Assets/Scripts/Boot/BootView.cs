@@ -79,19 +79,6 @@ namespace Boot
             Application.SetStackTraceLogType(LogType.Exception, StackTraceLogType.ScriptOnly);
 		}
 
-		void FixedUpdate()
-        {
-            if (GameStateService.CurrentState == GameState.Booting)
-                return;
-
-            if (_isCoreSceneLoaded)
-            {
-                GameLogicViewModel.CustomFixedUpdate();
-                PresentationViewModel.CustomFixedUpdate();
-                UIViewModel.CustomFixedUpdate();
-            }
-        }
-
         void Update()
         {
             if (GameStateService.CurrentState == GameState.Booting)
@@ -104,19 +91,6 @@ namespace Boot
                 UIViewModel.CustomUpdate();
 
                 ArchitectureService.ExecuteSentSignals();
-            }
-        }
-
-        void LateUpdate()
-        {
-            if (GameStateService.CurrentState == GameState.Booting)
-                return;
-
-            if (_isCoreSceneLoaded)
-            {
-                GameLogicViewModel.CustomLateUpdate();
-                PresentationViewModel.CustomLateUpdate();
-                UIViewModel.CustomLateUpdate();
             }
 
             GameStateService.SendEndFrameSignal();

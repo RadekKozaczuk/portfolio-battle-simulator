@@ -1,21 +1,19 @@
-﻿using System;
+﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Models;
+using GameLogic.Interfaces;
+using UnityEngine.Assertions;
 
 namespace GameLogic.Models
 {
-    class BattleModel
+    class BattleModel : IBattleModel
     {
-        /// <summary>
-        /// 
-        /// </summary>
         readonly int[] _armyStarts;
         readonly int[] _armyLengths;
-
-        // length = army count * unit type
-        readonly int[] _unityTypeStarts;
-        readonly int[] _unityTypeLengths;
+        readonly int[] _unitTypeStarts;
+        readonly int[] _unitTypeLengths;
 
         /// <summary>
         /// Contains all the units from all armies.
@@ -23,11 +21,6 @@ namespace GameLogic.Models
         readonly UnitModel[] _units;
 
         readonly int _armyCount;
-
-        /// <summary>
-        /// Amount of unit types.
-        /// </summary>
-        /// <returns></returns>
         readonly int _unitTypeCount;
 
         internal BattleModel(List<ArmyModel> armies)
@@ -41,36 +34,49 @@ namespace GameLogic.Models
             _armyLengths = new int[_armyCount];
 
             int sum = 0;
+            int totalSum = 0;
             for (int armyId = 0; armyId < _armyCount; armyId++)
             {
-                _armyStarts[armyId] = sum;
+                _armyStarts[armyId] = totalSum;
                 sum = armies[armyId].UnitCount;
                 _armyLengths[armyId] = sum;
+                totalSum += sum;
             }
 
             _unitTypeCount = armies[0].UnitTypeCount; // this is equal for all armies
-            _unityTypeStarts = new int[_armyCount * _unitTypeCount];
-            _unityTypeLengths = new int[_armyCount * _unitTypeCount];
+            _unitTypeStarts = new int[_armyCount * _unitTypeCount];
+            _unitTypeLengths = new int[_armyCount * _unitTypeCount];
 
-            sum = 0;
-
+            totalSum = 0;
             for (int armyId = 0; armyId < _armyCount; armyId++)
                 for (int unitTypeId = 0; unitTypeId < _unitTypeCount; unitTypeId++)
                 {
                     int index = armyId * _unitTypeCount + unitTypeId;
-                    _unityTypeStarts[index] = sum;
+                    _unitTypeStarts[index] = totalSum; // todo: this does not count good
                     sum = armies[armyId].GetUnitCount(unitTypeId);
-                    _unityTypeLengths[index] = sum;
+                    _unitTypeLengths[index] = sum;
+                    totalSum += sum;
                 }
         }
+
+        /// <summary>
+        /// Returns all units.
+        /// </summary>
+        /// <returns>All units.</returns>
+        Span<UnitModel> IBattleModel.GetUnits() => new(_units, 0, _units.Length);
 
         /// <summary>
         /// Returns all units from the given army.
         /// </summary>
         /// <param name="armyId">Only units from this army will be returned.</param>
         /// <returns>All units from the given army.</returns>
-        internal Span<UnitModel> GetUnits(int armyId) =>
-            new(_units, _armyStarts[armyId], _armyLengths[armyId]);
+        Span<UnitModel> IBattleModel.GetUnits(int armyId)
+        {
+            Assert.IsTrue(armyId >=0 && armyId < _armyCount,
+                          "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
+
+            return new Span<UnitModel>(_units, _armyStarts[armyId], _armyLengths[armyId]);
+        }
 
         /// <summary>
         /// Returns all units of the given type from the given army.
@@ -78,10 +84,13 @@ namespace GameLogic.Models
         /// <param name="armyId">Only units from this army will be returned.</param>
         /// <param name="unitType">Only units of this type will be returned.</param>
         /// <returns>All units from the given army of the given type.</returns>
-        internal Span<UnitModel> GetUnits(int armyId, int unitType)
+        Span<UnitModel> IBattleModel.GetUnits(int armyId, int unitType)
         {
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
+                          "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
+
             int index = armyId * _unitTypeCount + unitType;
-            return new Span<UnitModel>(_units, _unityTypeStarts[index], _unityTypeLengths[index]);
+            return new Span<UnitModel>(_units, _unitTypeStarts[index], _unitTypeLengths[index]);
         }
 
         /// <summary>
@@ -90,25 +99,41 @@ namespace GameLogic.Models
         /// <param name="armyId">Only units from this army will be returned.</param>
         /// <param name="exceptUnitId">Unit will this ID will be excluded.</param>
         /// <returns>All units from the given army except for the unit with the given ID.</returns>
-        internal Memory<UnitModel>[] GetUnitsExcept(int armyId, int exceptUnitId)
+        Memory<UnitModel>[] IBattleModel.GetUnitsExcept(int armyId, int exceptUnitId)
         {
-            if (_armyStarts[armyId] == exceptUnitId) // the except one is on the first spot
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
+                          "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
+
+            Assert.IsTrue(exceptUnitId >= 0 && exceptUnitId < _units.Length,
+                          "UnitId must be a valid number ranging from 0 to the total number of units (exclusive).");
+
+            int start1 = _armyStarts[armyId];
+
+            if (start1 == exceptUnitId) // the excluded unit is on the first spot
                 return new Memory<UnitModel>[]
                 {
                     new(_units, _armyStarts[armyId] + 1, _armyLengths[armyId] - 1)
                 };
 
-            if (_armyStarts[armyId] + _armyLengths[armyId] == exceptUnitId) // the except one is on the first spot
+            if (start1 + _armyLengths[armyId] - 1 == exceptUnitId) // the excluded unit is on the last spot
                 return new Memory<UnitModel>[]
                 {
                     new(_units, _armyStarts[armyId], _armyLengths[armyId] - 1)
                 };
 
+            // the excluded unit is outside the requested block
+            if (exceptUnitId < start1 || exceptUnitId > start1 + _armyLengths[armyId] - 1)
+                return new Memory<UnitModel>[] {new(_units, start1, _armyLengths[armyId])};
+
             // is somewhere in the middle therefore there will be two memories
+            int length1 = _armyStarts[armyId] + exceptUnitId - 1;
+            int start2 = exceptUnitId + 1;
+            int length2 = _armyLengths[armyId] - exceptUnitId - 1;
+
             return new Memory<UnitModel>[]
             {
-                new(_units, _armyStarts[armyId], _armyStarts[armyId] - exceptUnitId),
-                new(_units, exceptUnitId + 1, _armyLengths[armyId] - exceptUnitId + 1)
+                new(_units, start1, length1),
+                new(_units, start2, length2)
             };
         }
 
@@ -119,30 +144,73 @@ namespace GameLogic.Models
         /// <param name="unitType">Only units of this type will be returned.</param>
         /// <param name="exceptUnitId">Unit will this ID will be excluded.</param>
         /// <returns>All units from the given army of the given type except for the unit with the given ID.</returns>
-        internal Memory<UnitModel>[] GetUnitsExcept(int armyId, int unitType, int exceptUnitId) // todo: fix
+        Memory<UnitModel>[] IBattleModel.GetUnitsExcept(int armyId, int unitType, int exceptUnitId)
         {
-            if (_armyStarts[armyId] == exceptUnitId) // the except one is on the first spot
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
+                          "ArmyId must be a number ranging from 0 to the total number of armies (exclusive).");
+
+            Assert.IsTrue(unitType >= 0 && unitType < _unitTypeCount,
+                          "UnitType must be a number ranging from 0 to the total number of unit types (exclusive).");
+
+            Assert.IsTrue(exceptUnitId >= 0 && exceptUnitId < _units.Length,
+                          "ExceptionUnitId must be a number ranging from 0 to the total number of units (exclusive).");
+
+            int index = armyId * _unitTypeCount + unitType;
+
+            // there is zero units of the requested type
+            if (_unitTypeLengths[index] == 0)
                 return new Memory<UnitModel>[]
                 {
-                    new(_units, _armyStarts[armyId] + 1, _armyLengths[armyId] - 1)
+                    new(_units, _unitTypeStarts[index], 0)
                 };
 
-            if (_armyStarts[armyId] + _armyLengths[armyId] == exceptUnitId) // the except one is on the first spot
+            // the excluded unit is at the beginning of the memory block
+            int start1 = _unitTypeStarts[index];
+            if (start1 == exceptUnitId)
                 return new Memory<UnitModel>[]
                 {
-                    new(_units, _armyStarts[armyId], _armyLengths[armyId] - 1)
+                    new(_units, _unitTypeStarts[index] + 1, _unitTypeLengths[index] - 1)
                 };
 
-            // is somewhere in the middle therefore there will be two memories
+            // the excluded unit is on the last spot
+            int end = _unitTypeStarts[index] + _unitTypeLengths[index] - 1;
+            if (end == exceptUnitId)
+            {
+                int arrIndex = _unitTypeCount - 1;
+                int start = _unitTypeStarts[arrIndex];
+                int length = _unitTypeLengths[arrIndex];
+
+                if (_unitTypeStarts[arrIndex] + _unitTypeLengths[arrIndex] == exceptUnitId)
+                    length--;
+
+                return new Memory<UnitModel>[] {new(_units, start, length)};
+            }
+
+            // the excluded unit is outside the requested block
+            if (exceptUnitId < start1 || exceptUnitId > end)
+                return new Memory<UnitModel>[] {new(_units, start1, _unitTypeLengths[index])};
+
+            int length1 = _unitTypeStarts[index] + exceptUnitId - 1;
+            int start2 = exceptUnitId + 1;
+            int length2 = _unitTypeLengths[index] - exceptUnitId - 1;
+
             return new Memory<UnitModel>[]
             {
-                new(_units, _armyStarts[armyId], _armyStarts[armyId] - exceptUnitId),
-                new(_units, exceptUnitId + 1, _armyLengths[armyId] - exceptUnitId + 1)
+                new(_units, start1, length1),
+                new(_units, start2, length2)
             };
         }
 
-        internal Memory<UnitModel>[] GetEnemies(int armyId)
+        /// <summary>
+        /// Returns all units that are NOT from the given army (enemies).
+        /// </summary>
+        /// <param name="armyId">Units from army with the given id will be excluded.</param>
+        /// <returns>All units from all other armies except the given one.</returns>
+        Memory<UnitModel>[] IBattleModel.GetEnemies(int armyId)
         {
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
+                          "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
+
             if (armyId == 0) // first one
                 return new Memory<UnitModel>[]
                 {

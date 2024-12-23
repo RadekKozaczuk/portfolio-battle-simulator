@@ -28,10 +28,6 @@ namespace GameLogic.ViewModels
             PresentationViewModel.CustomUpdate();
         }
 
-        public static void CustomFixedUpdate() => _mainController.CustomFixedUpdate();
-
-        public static void CustomLateUpdate() => _mainController.CustomLateUpdate();
-
         public static void BootingOnExit() { }
 
         public static void MainMenuOnEntry() { }

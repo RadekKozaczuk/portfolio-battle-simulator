@@ -19,7 +19,7 @@ namespace UI.Controllers
     /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
-    class UIMainController : ICustomFixedUpdate, ICustomUpdate, ICustomLateUpdate
+    class UIMainController : ICustomUpdate
     {
         static bool _uiSceneLoaded;
 
@@ -33,10 +33,6 @@ namespace UI.Controllers
 
             InputService.CustomUpdate();
         }
-
-        public void CustomFixedUpdate() { }
-
-        public void CustomLateUpdate() { }
 
         internal static void OnUISceneLoaded() => _uiSceneLoaded = true;
     }

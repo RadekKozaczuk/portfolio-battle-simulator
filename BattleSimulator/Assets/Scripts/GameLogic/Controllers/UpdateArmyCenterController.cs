@@ -1,11 +1,17 @@
-﻿using Core;
+﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System;
+using Core;
 using Core.Interfaces;
+using Core.Models;
+using GameLogic.Interfaces;
 using GameLogic.Models;
+using JetBrains.Annotations;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace GameLogic.Controllers
 {
+    [UsedImplicitly]
     class UpdateArmyCenterController : ICustomUpdate
     {
         internal float2 CenterOfArmies
@@ -24,19 +30,33 @@ namespace GameLogic.Controllers
         float2 _centerOfArmies;
 
         readonly float2[] _armyCenters;
+        IBattleModel _model;
 
         void Initialize(BattleModel model)
         {
-            /*_centerOfArmies = new float2(float.MinValue, float.MinValue);
-            _armyCenters = new float2[_armyCount];
-
-            for (int i = 0; i < _armyCount; i++)
-                _armyCenters[i] = new float2(float.MinValue, float.MinValue);*/
+            _model = model;
         }
 
         public void CustomUpdate()
         {
+            //Span<UnitModel> units = _model.GetUnits();
 
+            float2 sum = float2.zero;
+            float2 partialSum = float2.zero;
+            for (int armyId = 0; armyId < _armyCenters.Length; armyId++)
+            {
+                Span<UnitModel> units = _model.GetUnits(armyId);
+
+                for (int i = 0; i < units.Length; i++)
+                {
+                    partialSum += CoreData.UnitCurrPos[units[i].Id];
+                }
+
+                _armyCenters[armyId] = partialSum;
+                sum += partialSum;
+            }
+
+            CenterOfArmies = sum;
         }
 
         internal float2 GetArmyCenter(int armyId) => _armyCenters[armyId];

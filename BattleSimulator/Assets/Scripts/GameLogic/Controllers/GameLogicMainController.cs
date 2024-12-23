@@ -7,8 +7,10 @@ using Core.Interfaces;
 using Core.Models;
 using Core.Services;
 using GameLogic.Interfaces;
+using GameLogic.Jobs;
 using GameLogic.Models;
 using JetBrains.Annotations;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Scripting;
@@ -28,7 +30,7 @@ namespace GameLogic.Controllers
     /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
-    class GameLogicMainController : ICustomFixedUpdate, ICustomUpdate, ICustomLateUpdate, IInitializable
+    class GameLogicMainController : ICustomUpdate, IInitializable
     {
         [Inject]
         static readonly WarriorController _warriorController;
@@ -36,8 +38,13 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly ArcherController _archerController;
 
+        [Inject]
+        static readonly UpdateArmyCenterController _armyCenterController;
+
         // todo: should be possible to inject directly
         readonly IUnitController[] _unitControllers = new IUnitController[2];
+
+        IBattleModel _battleModel;
 
         [Preserve]
         GameLogicMainController() { }
@@ -48,7 +55,7 @@ namespace GameLogic.Controllers
             _unitControllers[1] = _archerController;
         }
 
-        public void CustomFixedUpdate() { }
+        Action<int>[] _behaviours;
 
         public void CustomUpdate()
         {
@@ -57,9 +64,15 @@ namespace GameLogic.Controllers
 
             GameLogicData.DeltaTime = Time.deltaTime;
 
-            CalculateArmyCenter(0);
-            CalculateArmyCenter(1);
-            CalculateCenterOfArmies();
+            _armyCenterController.CustomUpdate();
+
+            var job1 = new MoveTowardCenterJob
+            {
+                Positions = CoreData.UnitCurrPos,
+                CenterOfArmies = _armyCenterController.CenterOfArmies
+            };
+            JobHandle handle1 = job1.Schedule(CoreData.UnitCurrPos.Length, 1); // todo: investigate innerloop batch count
+            handle1.Complete();
 
             // todo: Parallel For appears to be slower than single-threaded execution
             // todo: to check if splitting the execution into very small amount of tasks (f.e. 2 or 4) would be beneficial 
@@ -69,90 +82,41 @@ namespace GameLogic.Controllers
             // we go per army now (and then maybe per type)
             for (int armyId = 0; armyId < 2; armyId++)
             {
-                ref MemoryLayoutModel layout = ref GameLogicData.MemoryLayout[armyId];
-                Span<UnitModel> allies = CoreData.Units.AsSpan(layout.AllyIndex, layout.AllyLength);
-                Span<UnitModel> enemies1 = CoreData.Units.AsSpan(layout.EnemyIndex1, layout.EnemyLength1);
+                Span<UnitModel> units = _battleModel.GetUnits(armyId);
 
-                Span<UnitModel> enemies2 = default;
-                // true if enemy are stored in a continues block of memory
-                if (layout.EnemyIndex2 != int.MinValue)
-                    enemies2 = CoreData.Units.AsSpan(layout.EnemyIndex2, layout.EnemyLength2);
-
-                //Parallel.For(0, CoreData.Units.Length, unitId =>
-                for (int unitId = layout.AllyIndex; unitId < layout.AllyIndex + layout.AllyLength; unitId++)
+                for (int unitId = 0; unitId < units.Length; unitId++)
                 {
-                    ref UnitModel unit = ref CoreData.Units[unitId];
+                    ref UnitModel unit = ref units[unitId];
+                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
+                    foreach (Memory<UnitModel> memory in allies)
+                        PushAwayFromAllies(unit.Id, memory.Span);
 
-                    if (unit.Health <= 0) // todo: we could technically sort the array so that health units are always next to each other
-                        return;
-
-                    MoveTowardCenter(unitId);
-                    PushAwayFromAllies(allies, unitId);
-                    PushAwayFromEnemiesAndFindNearest(enemies1, unitId);
-
-                    // true if enemy are stored in a continues block of memory
-                    if (layout.EnemyIndex2 != int.MinValue)
-                        PushAwayFromEnemiesAndFindNearest(enemies2, unitId);
+                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
+                    foreach (Memory<UnitModel> memory in enemies)
+                        PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
 
                     unit.AttackCooldown -= GameLogicData.DeltaTime;
 
-                    // === works up to this point ===
+                    // todo: we know the strateg beforehand
+                    //_unitControllers[unit.UnitType].GetBehavior(Strategy.Basic)(unitId); // todo: this breaks
+                }
 
-                    // update behaviours
-                    // todo: should be cached
-                    _unitControllers[unit.UnitType].GetBehavior(Strategy.Basic)(unitId); // todo: this breaks
+                // todo: retrieve beforehand
+                Action<int> action = i => { };
+                for (int unitType = 0; unitType < 2; unitType++)
+                {
+                    _battleModel.GetUnits(armyId, unitType);
+
+                    for (int unitId = 0; unitId < units.Length; unitId++)
+                        action(unitId);
                 }
             }
-        }
-
-        public void CustomLateUpdate() { }
-
-        static void CalculateArmyCenter(int armyId)
-        {
-            int unitCount = 0;
-            MemoryLayoutModel memory = GameLogicData.MemoryLayout[armyId];
-            float2 sum = float2.zero;
-            for (int i = memory.AllyIndex; i < memory.AllyIndex + memory.AllyLength; i++)
-            {
-                ref UnitModel unit = ref CoreData.Units[i];
-
-                // skip dead units
-                if (unit.Health <= 0)
-                    continue;
-
-                unitCount++;
-                sum += CoreData.UnitCurrPos[i];
-            }
-
-            CoreData.ArmyCenters[armyId] = sum / unitCount;
-        }
-
-        static void CalculateCenterOfArmies()
-        {
-            float2 sum = float2.zero;
-
-            for (int i = 0; i < 2; i++)
-                sum += CoreData.ArmyCenters[i];
-
-            CoreData.CenterOfArmies = sum / 2;
-        }
-
-        static void MoveTowardCenter(int unitId)
-        {
-            float2 currPos = CoreData.UnitCurrPos[unitId];
-            float distanceToCenter = math.distance(currPos, CoreData.CenterOfArmies);
-
-            if (distanceToCenter <= 80.0f)
-                return;
-
-            float2 normal = math.normalize(CoreData.CenterOfArmies - currPos);
-            CoreData.UnitCurrPos[unitId] -= normal * (80.0f - distanceToCenter);
         }
 
         /// <summary>
         /// Pushes all units (regardless of their army membership) away from each other.
         /// </summary>
-        static void PushAwayFromAllies(Span<UnitModel> allies, int unitId)
+        static void PushAwayFromAllies(int unitId, Span<UnitModel> allies)
         {
             float2 currPos = CoreData.UnitCurrPos[unitId];
             float2 posDelta = float2.zero;
@@ -174,17 +138,14 @@ namespace GameLogic.Controllers
                 // comparing with yourself would result in NaN
                 float2 difference = otherUnitPos - currPos;
                 // ReSharper disable once InvertIf
-                if (math.any(difference))
-                {
-                    float2 normal = math.normalize(difference);
-                    posDelta -= normal * (2.0f - distance); // todo: maybe we can move the normal calculation to later
-                }
+                float2 normal = math.normalize(difference);
+                posDelta -= normal * (2.0f - distance); // todo: maybe we can move the normal calculation to later
             }
 
             CoreData.UnitCurrPos[unitId] -= posDelta;
         }
 
-        static void PushAwayFromEnemiesAndFindNearest(Span<UnitModel> enemies, int unitId)
+        static void PushAwayFromEnemiesAndFindNearest(int unitId, Span<UnitModel> enemies)
         {
             float2 currPos = CoreData.UnitCurrPos[unitId];
 
@@ -212,11 +173,9 @@ namespace GameLogic.Controllers
                     continue;
 
                 float2 difference = enemyCurrPos - currPos;
-                if (math.any(difference))
-                {
-                    float2 normal = math.normalize(difference);
-                    CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
-                }
+                float2 normal = math.normalize(difference);
+                CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
+
             }
 
             // todo: additional check if not overwriting in case of more than 2 armies

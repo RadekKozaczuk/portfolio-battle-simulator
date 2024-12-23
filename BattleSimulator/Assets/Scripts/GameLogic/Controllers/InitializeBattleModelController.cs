@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Core;
 using Core.Models;
-using GameLogic.Models;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -36,48 +35,10 @@ namespace GameLogic.Controllers
             int totalUnitCount = armies.Sum(army => army.UnitCount);
             CoreData.ArmyCenters = new float2[armies.Count];
             CreateNativeArrays(totalUnitCount);
-            CreateMemoryLayout(armies, totalUnitCount);
+            //CreateMemoryLayout(armies, totalUnitCount);
             CreateUnitModels(armies, leftSpawn, rightSpawn);
 
             Signals.BattleModelCreated();
-        }
-
-        internal MemoryLayoutModel[] CreateMemoryLayoutV2(List<ArmyModel> armies)
-        {
-            int totalUnitCount = armies.Sum(army => army.UnitCount);
-
-            // first and last memory elements
-            var memory = new MemoryLayoutModel[armies.Count];
-            int firstArmyCount = armies[0].UnitCount;
-            memory[0] = new MemoryLayoutModel(
-                0,
-                firstArmyCount,
-                firstArmyCount,
-                totalUnitCount - firstArmyCount);
-
-            int lastArmyCount = armies[^1].UnitCount;
-            memory[armies.Count - 1] = new MemoryLayoutModel(
-                totalUnitCount - lastArmyCount,
-                lastArmyCount,
-                0,
-                totalUnitCount - lastArmyCount);
-
-            // middle memory elements
-            int ongoingTotal = 0;
-            for (int i = 1; i < armies.Count - 2; i++)
-            {
-                ArmyModel army = armies[i];
-                ongoingTotal += armies[i - 1].UnitCount;
-                memory[i] = new MemoryLayoutModel(
-                    0,
-                    ongoingTotal,
-                    ongoingTotal + army.UnitCount,
-                    totalUnitCount,
-                    0,
-                    0);
-            }
-
-            return memory;
         }
 
         static void CreateNativeArrays(int totalUnitCount)
@@ -90,40 +51,6 @@ namespace GameLogic.Controllers
 
             CoreData.Units = new UnitModel[totalUnitCount];
             CoreData.Projectiles = new ProjectileModel[10]; // initially 10, does upscale when needed
-        }
-
-        static void CreateMemoryLayout(List<ArmyModel> armies, int totalUnitCount)
-        {
-            // first and last memory elements
-            GameLogicData.MemoryLayout = new MemoryLayoutModel[armies.Count];
-            int firstArmyCount = armies[0].UnitCount;
-            GameLogicData.MemoryLayout[0] = new MemoryLayoutModel(
-                0,
-                firstArmyCount,
-                firstArmyCount,
-                totalUnitCount - firstArmyCount);
-
-            int lastArmyCount = armies[^1].UnitCount;
-            GameLogicData.MemoryLayout[armies.Count - 1] = new MemoryLayoutModel(
-                totalUnitCount - lastArmyCount,
-                lastArmyCount,
-                0,
-                totalUnitCount - lastArmyCount);
-
-            // middle memory elements
-            int ongoingTotal = 0;
-            for (int i = 1; i < armies.Count - 2; i++)
-            {
-                ArmyModel army = armies[i];
-                ongoingTotal += armies[i - 1].UnitCount;
-                GameLogicData.MemoryLayout[i] = new MemoryLayoutModel(
-                    0,
-                    ongoingTotal,
-                    ongoingTotal + army.UnitCount,
-                    totalUnitCount,
-                    0,
-                    0);
-            }
         }
 
         void CreateUnitModels(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn)

@@ -28,7 +28,7 @@ namespace Presentation.Controllers
     /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
-    class PresentationMainController : IInitializable, ICustomFixedUpdate, ICustomUpdate, ICustomLateUpdate
+    class PresentationMainController : IInitializable, ICustomUpdate
     {
         static readonly ProjectileConfig _projectileConfig;
         static readonly UnitConfig _unitConfig;
@@ -44,8 +44,6 @@ namespace Presentation.Controllers
         PresentationMainController() { }
 
         public void Initialize() { }
-
-        public void CustomFixedUpdate() { }
 
         public void CustomUpdate()
         {
@@ -74,8 +72,6 @@ namespace Presentation.Controllers
             Vector3 forwardTarget = (centerOfArmies - pos).normalized;
             PresentationSceneReferenceHolder.GameplayCamera.transform.forward += (forwardTarget - pos) * 0.1f;
         }
-
-        public void CustomLateUpdate() { }
 
         [React]
         static void OnBattleModelCreated()

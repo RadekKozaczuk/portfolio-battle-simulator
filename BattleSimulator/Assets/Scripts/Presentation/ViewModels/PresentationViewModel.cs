@@ -24,10 +24,6 @@ namespace Presentation.ViewModels
 
         public static void CustomUpdate() => _presentationMainController.CustomUpdate();
 
-        public static void CustomFixedUpdate() => _presentationMainController.CustomFixedUpdate();
-
-        public static void CustomLateUpdate() => _presentationMainController.CustomLateUpdate();
-
         public static void BootingOnExit() { }
 
         public static void MainMenuOnEntry()

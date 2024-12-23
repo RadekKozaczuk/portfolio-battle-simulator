@@ -27,7 +27,6 @@
             Speed = speed;
             DistanceToEnemyCenterThreshold = distanceToEnemyCenterThreshold;
 
-
             CooldownDifference = 45f;
         }
     }

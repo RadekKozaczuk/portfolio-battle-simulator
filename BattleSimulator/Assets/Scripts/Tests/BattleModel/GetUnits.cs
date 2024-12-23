@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Core.Models;
+using GameLogic.Interfaces;
 using NUnit.Framework;
 
 namespace Tests.BattleModel
@@ -15,7 +16,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            var battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -34,7 +35,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            var battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -53,7 +54,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            var battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -73,7 +74,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            var battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
             Span<UnitModel> units1 = battle.GetUnits(0);
             Span<UnitModel> warriors1 = battle.GetUnits(0, 0);
             Span<UnitModel> archers1 = battle.GetUnits(0, 1);

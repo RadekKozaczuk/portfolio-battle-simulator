@@ -23,11 +23,7 @@ namespace UI.ViewModels
 
         public void Initialize() => InputService.Initialize();
 
-        public static void CustomFixedUpdate() => _uiMainController.CustomFixedUpdate();
-
         public static void CustomUpdate() => _uiMainController.CustomUpdate();
-
-        public static void CustomLateUpdate() => _uiMainController.CustomLateUpdate();
 
         public static void OnUISceneLoaded() => UIMainController.OnUISceneLoaded();
 

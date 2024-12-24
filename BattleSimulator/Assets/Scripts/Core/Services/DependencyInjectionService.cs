@@ -102,7 +102,12 @@ namespace Core.Services
                     // bind type in the container if it is a Controller or a ViewModel
                     if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
                     {
-                        object instance = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { });
+                        ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                        if (constructors.Length == 0)
+                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve]");
+
+                        object instance = constructors[0].Invoke(new object[] { });
                         instances.Add(type, instance);
                         SignalService.AddReactiveInstantiatable(instance);
 

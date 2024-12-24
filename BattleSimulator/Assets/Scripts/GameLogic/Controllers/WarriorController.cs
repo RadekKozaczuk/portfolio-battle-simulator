@@ -14,14 +14,47 @@ namespace GameLogic.Controllers
 {
     class WarriorController : IUnitController
     {
-        readonly Action<int>[] _strategies = {Basic, Defensive};
+        [Inject]
+        static readonly UpdateArmyCenterController _updateArmyCenterController;
+
+        //readonly Action<int>[] _strategies = {Basic, Defensive};
+        readonly Action<int, int, IBattleModel>[] _strategies = {BasicV2, DefensiveV2};
 
         [Preserve]
         WarriorController() { }
 
-        Action<int> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
+        //Action<int> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
+        Action<int, int, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
 
-        static void Basic(int unitId)
+        static void BasicV2(int armyId, int unitType, IBattleModel battleModel)
+        {
+            Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
+
+            foreach (UnitModel model in units)
+            {
+                ref UnitModel unit = ref battleModel.GetUnit(model.Id);
+                ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
+                Logic(ref unit, ref enemy);
+            }
+        }
+
+        static void DefensiveV2(int armyId, int unitType, IBattleModel battleModel)
+        {
+            Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
+
+            foreach (UnitModel model in units)
+            {
+                ref UnitModel unit = ref battleModel.GetUnit(model.Id);
+                ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
+
+                ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
+                SharedUnitBehaviors.MoveTowardsCenter(ref unit, _updateArmyCenterController.GetArmyCenter(enemy.ArmyId), in sharedData);
+
+                Logic(ref unit, ref enemy);
+            }
+        }
+
+        /*static void Basic(int unitId)
         {
             ref UnitModel model = ref CoreData.Units[unitId];
             ref UnitModel enemyModel = ref CoreData.Units[model.NearestEnemyId];
@@ -37,7 +70,7 @@ namespace GameLogic.Controllers
             SharedUnitBehaviors.MoveTowardsCenter(ref model, CoreData.ArmyCenters[enemyModel.ArmyId], in sharedData);
 
             Logic(ref model, ref enemyModel);
-        }
+        }*/
 
         static void Logic(ref UnitModel model, ref UnitModel enemyModel)
         {

@@ -13,7 +13,6 @@
         public readonly float Speed;
         public readonly float DistanceToEnemyCenterThreshold;
 
-
         public readonly float CooldownDifference;
 
         public UnitStatsModel(int health, int defense, int attack, float attackRange,

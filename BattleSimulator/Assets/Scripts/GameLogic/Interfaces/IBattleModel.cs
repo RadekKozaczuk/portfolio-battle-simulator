@@ -5,6 +5,10 @@ namespace GameLogic.Interfaces
 {
     public interface IBattleModel
     {
+        internal int ArmyCount { get; }
+
+        internal ref UnitModel GetUnit(int unitId);
+
         internal Span<UnitModel> GetUnits();
 
         internal Span<UnitModel> GetUnits(int armyId);

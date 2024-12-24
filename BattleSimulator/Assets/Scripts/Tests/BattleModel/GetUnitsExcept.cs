@@ -136,5 +136,49 @@ namespace Tests.BattleModel
             Assert.That(warriorsSpan2.Length == 14);
             Assert.That(archersSpan2.Length == 15);
         }
+
+        [Test]
+        public void TwoArmies_100SoldiersEach_Except102nd()
+        {
+            // 1. Arrange
+            var army1 = new ArmyModel(100, 0);
+            var army2 = new ArmyModel(100, 0);
+            var armies = new List<ArmyModel> {army1, army2};
+
+            // 2. Act
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            /*Memory<UnitModel>[] units1 = battle.GetUnitsExcept(0, 101);
+            Memory<UnitModel>[] warriors1 = battle.GetUnitsExcept(0, 0, 101);
+            Memory<UnitModel>[] archers1 = battle.GetUnitsExcept(0, 1, 101);
+
+            Memory<UnitModel>[] units2 = battle.GetUnitsExcept(1, 101);*/
+            Memory<UnitModel>[] warriors2 = battle.GetUnitsExcept(1, 0, 101);
+            //Memory<UnitModel>[] archers2 = battle.GetUnitsExcept(1, 1, 101);
+
+            /*Span<UnitModel> unitsSpan1 = units1[0].Span;
+            Span<UnitModel> warriorsSpan1 = warriors1[0].Span;
+            Span<UnitModel> archersSpan1 = archers1[0].Span;
+
+            Span<UnitModel> unitsSpan2 = units2[0].Span;
+            Span<UnitModel> warriorsSpan2 = warriors2[0].Span;
+            Span<UnitModel> archersSpan2 = archers2[0].Span;*/
+
+            // 3. Assert
+            /*Assert.That(units1.Length == 1);
+            Assert.That(warriors1.Length == 1);
+            Assert.That(archers1.Length == 1);
+
+            Assert.That(units2.Length == 2);*/
+            Assert.That(warriors2.Length == 2);
+            //Assert.That(archers2.Length == 1);
+
+            /*Assert.That(unitsSpan1.Length == 20);
+            Assert.That(warriorsSpan1.Length == 10);
+            Assert.That(archersSpan1.Length == 10);
+
+            Assert.That(unitsSpan2.Length == 29);
+            Assert.That(warriorsSpan2.Length == 14);
+            Assert.That(archersSpan2.Length == 15);*/
+        }
     }
 }

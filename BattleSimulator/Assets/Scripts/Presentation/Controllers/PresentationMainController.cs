@@ -1,4 +1,6 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System.Collections.Generic;
+using System.Linq;
 using Core;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
@@ -9,7 +11,6 @@ using Presentation.Interfaces;
 using Presentation.Jobs;
 using Presentation.Views;
 using Unity.Jobs;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Jobs;
 using UnityEngine.Pool;
@@ -64,38 +65,38 @@ namespace Presentation.Controllers
 
             handle1.Complete();
             //handle2.Complete();
+        }
 
-            // update camera
-            var centerOfArmies = new Vector3(CoreData.CenterOfArmies.x, 0, CoreData.CenterOfArmies.y);
-            Camera camera = PresentationSceneReferenceHolder.GameplayCamera;
-            Vector3 pos = camera.transform.position;
-            Vector3 forwardTarget = (centerOfArmies - pos).normalized;
-            PresentationSceneReferenceHolder.GameplayCamera.transform.forward += (forwardTarget - pos) * 0.1f;
+        internal static void InstantiateUnits(List<ArmyModel> armies)
+        {
+            int totalUnitCount = armies.Sum(army => army.UnitCount);
+
+            PresentationData.Units = new IUnit[totalUnitCount];
+            var transforms = new Transform[totalUnitCount];
+
+            int unitId = 0;
+            foreach (ArmyModel army in armies)
+                for (int unitType = 0; unitType < 2; unitType++)
+                    for (int i = 0; i < army.GetUnitCount(unitType); i++)
+                    {
+                        UnitView prefab = _unitConfig.UnitPrefabs[unitType];
+                        UnitView view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
+                        transforms[i] = view.transform;
+
+                        PresentationData.Units[unitId] = view;
+                        unitId++;
+                    }
+
+            PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);
         }
 
         [React]
-        static void OnBattleModelCreated()
+        static void OnCenterOfArmiesChanged(Vector3 center)
         {
-            int size = CoreData.Units.Length;
-            PresentationData.Units = new IUnit[size];
-            var transforms = new Transform[size];
-
-            for (int i = 0; i < size; i++)
-            {
-                ref UnitModel unit = ref CoreData.Units[i];
-                UnitView prefab = _unitConfig.UnitPrefabs[unit.UnitType];
-                float2 pos2 = CoreData.UnitCurrPos[i];
-                var pos3 = new Vector3(pos2.x, 0, pos2.y);
-
-                UnitView view = Object.Instantiate(prefab, pos3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
-                transforms[i] = view.transform;
-
-                PresentationData.Units[i] = Object.Instantiate(prefab, pos3, Quaternion.identity, PresentationSceneReferenceHolder.UnitContainer);
-            }
-
-            PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);
-
-            _loadingFinished = true;
+            Camera camera = PresentationSceneReferenceHolder.GameplayCamera;
+            Vector3 pos = camera.transform.position;
+            Vector3 forwardTarget = (center - pos).normalized;
+            camera.transform.forward += (forwardTarget - pos) * 0.1f;
         }
     }
 }

@@ -25,8 +25,6 @@ namespace UI.Services
                 // otherwise quit the game
                 if (PopupSystem.CurrentPopup == null)
                 {
-                    GameLogicViewModel.QuitGame();
-
 #if UNITY_EDITOR
                     UnityEditor.EditorApplication.ExitPlaymode();
 #else

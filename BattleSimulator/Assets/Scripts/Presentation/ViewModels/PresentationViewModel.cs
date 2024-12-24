@@ -1,6 +1,8 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System.Collections.Generic;
 using Core;
 using Core.Interfaces;
+using Core.Models;
 using JetBrains.Annotations;
 using Presentation.Config;
 using Presentation.Controllers;
@@ -42,10 +44,16 @@ namespace Presentation.ViewModels
 
         public static void GameplayOnExit() { }
 
-        public static void GetSpawnBounds(out Bounds left, out Bounds right)
+        public static Bounds[] GetSpawnBounds() => new[]
         {
-            left = PresentationSceneReferenceHolder.LeftSpawn.bounds;
-            right = PresentationSceneReferenceHolder.RightSpawn.bounds;
-        }
+            PresentationSceneReferenceHolder.LeftSpawn.bounds,
+            PresentationSceneReferenceHolder.RightSpawn.bounds
+        };
+
+        /// <summary>
+        /// This only spawns object.
+        /// Positions are not yet set at this moment,
+        /// </summary>
+        public static void InstantiateUnits(List<ArmyModel> armies) => PresentationMainController.InstantiateUnits(armies);
     }
 }

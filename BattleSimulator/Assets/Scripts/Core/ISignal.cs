@@ -6,7 +6,7 @@ namespace Core
 {
     public interface ISignal
     {
-        void BattleModelCreated();
+        //void BattleModelCreated();
 
         void CenterOfArmiesChanged(Vector3 center);
     }

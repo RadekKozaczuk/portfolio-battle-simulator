@@ -1,13 +1,12 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using Core;
 using Core.Models;
+using GameLogic.Interfaces;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.Scripting;
 using Random = Unity.Mathematics.Random;
 
@@ -21,24 +20,34 @@ namespace GameLogic.Controllers
         [Preserve]
         internal InitializeBattleModelController() { }
 
-        internal void InitializeDataModel(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn)
+        internal void InitializeModel(IBattleModel battleModel, Bounds[] spawnZones)
         {
-            Assert.IsTrue(armies.Count >= 2, "There must be at least two armies for the simulation to happen.");
-
-            // todo: for now here
+            // todo: for now here - should be in config
             CoreData.UnitStats = new[]
             {
                 new UnitStatsModel(50, 5, 20, 2.5f, 1f, 0f, 0.1f, 20f),
                 new UnitStatsModel(5, 0, 10, 20f, 5f, 1f, 0.1f, 20f)
             };
 
-            int totalUnitCount = armies.Sum(army => army.UnitCount);
-            CoreData.ArmyCenters = new float2[armies.Count];
-            CreateNativeArrays(totalUnitCount);
-            //CreateMemoryLayout(armies, totalUnitCount);
-            CreateUnitModels(armies, leftSpawn, rightSpawn);
+            // todo: in the future add GetUnitCount
+            Span<UnitModel> units = battleModel.GetUnits();
 
-            Signals.BattleModelCreated();
+            CreateNativeArrays(units.Length);
+            CreateUnitModels(2, 2, battleModel, spawnZones);
+
+            // apply health
+            for (int armyId = 0; armyId < 2; armyId++)
+                for (int unitType = 0; unitType < 2; unitType++)
+                {
+                    int health = CoreData.UnitStats[unitType].Health;
+                    Span<UnitModel> qq = battleModel.GetUnits(armyId, unitType);
+
+                    foreach (UnitModel model in qq)
+                    {
+                        ref UnitModel w = ref battleModel.GetUnit(model.Id);
+                        w.Health = health;
+                    }
+                }
         }
 
         static void CreateNativeArrays(int totalUnitCount)
@@ -49,34 +58,26 @@ namespace GameLogic.Controllers
             for (int i = 0; i < CoreData.AttackingEnemyPos.Length; i++)
                 CoreData.AttackingEnemyPos[i] = new float2(float.MinValue, float.MinValue);
 
-            CoreData.Units = new UnitModel[totalUnitCount];
             CoreData.Projectiles = new ProjectileModel[10]; // initially 10, does upscale when needed
         }
 
-        void CreateUnitModels(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn)
+        void CreateUnitModels(int armyCount, int unitTypeCount, IBattleModel battleModel, Bounds[] spawnZones)
         {
             int index = 0;
-            for (int i = 0; i < armies.Count; i++)
+
+            for (int armyId = 0; armyId < armyCount; armyId++)
             {
-                Bounds bounds = i == 0 ? leftSpawn : rightSpawn;
+                Bounds bounds = spawnZones[armyId];
 
-                // todo: merge these two
-                for (int j = 0; j < armies[i].Warriors; j++)
+                for (int unitType = 0; unitType < unitTypeCount; unitType++)
                 {
-                    float2 pos = GetRandomPosInBounds(bounds);
+                    Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
-                    CoreData.Units[index] = new UnitModel(index, 0, i, 50); // todo: retrieve health
-                    CoreData.UnitCurrPos[index] = pos;
-                    index++;
-                }
-
-                for (int j = 0; j < armies[i].Archers; j++)
-                {
-                    float2 pos = GetRandomPosInBounds(bounds);
-
-                    CoreData.Units[index] = new UnitModel(index, 1, i, 50); // todo: retrieve health
-                    CoreData.UnitCurrPos[index] = pos;
-                    index++;
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        CoreData.UnitCurrPos[index] = GetRandomPosInBounds(bounds);
+                        index++;
+                    }
                 }
             }
         }

@@ -75,6 +75,7 @@ namespace Tests.BattleModel
 
             // 2. Act
             IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            Span<UnitModel> units = battle.GetUnits();
             Span<UnitModel> units1 = battle.GetUnits(0);
             Span<UnitModel> warriors1 = battle.GetUnits(0, 0);
             Span<UnitModel> archers1 = battle.GetUnits(0, 1);
@@ -83,6 +84,7 @@ namespace Tests.BattleModel
             Span<UnitModel> archers2 = battle.GetUnits(1, 1);
 
             // 3. Assert
+            Assert.That(units.Length == 2);
             Assert.That(units1.Length == 1);
             Assert.That(warriors1.Length == 1);
             Assert.That(archers1.Length == 0);

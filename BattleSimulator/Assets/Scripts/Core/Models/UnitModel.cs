@@ -32,6 +32,19 @@ namespace Core.Models
         public bool Attacked;
         public float2 LastIncomingAttackDirection;
 
+        public UnitModel(int id, int unitType, int armyId)
+        {
+            Id = id;
+            UnitType = unitType;
+            ArmyId = armyId;
+            Health = 0;
+            AttackCooldown = 0f;
+            NearestEnemyId = int.MinValue;
+            Attacked = false;
+            LastIncomingAttackDirection = float2.zero;
+            HealthDelta = 0;
+        }
+
         public UnitModel(int id, int unitType, int armyId, int health)
         {
             Id = id;

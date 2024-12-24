@@ -6,6 +6,8 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
+using GameLogic.Interfaces;
+using GameLogic.Models;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
@@ -15,9 +17,6 @@ namespace GameLogic.ViewModels
     {
         [Inject]
         static readonly GameLogicMainController _mainController;
-
-        [Inject]
-        static readonly InitializeBattleModelController _battleModelController;
 
         [Preserve]
         GameLogicViewModel() { }
@@ -38,12 +37,9 @@ namespace GameLogic.ViewModels
 
         public static void GameplayOnExit() { }
 
-        /// <summary>
-        /// If the instance hosted a lobby, the lobby will be deleted.
-        /// </summary>
-        public static void QuitGame() { }
-
-        public static void InitializeBattleModel(List<ArmyModel> armies, Bounds leftSpawn, Bounds rightSpawn) =>
-            _battleModelController.InitializeDataModel(armies, leftSpawn, rightSpawn);
+        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones)
+        {
+            _mainController.InitializeModel(armies, spawnZones);
+        }
     }
 }

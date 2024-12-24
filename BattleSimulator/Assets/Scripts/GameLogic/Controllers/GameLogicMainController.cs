@@ -1,5 +1,6 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Core;
 using Core.Enums;
@@ -30,7 +31,7 @@ namespace GameLogic.Controllers
     /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
-    class GameLogicMainController : ICustomUpdate, IInitializable
+    class GameLogicMainController : IInitializable, ICustomUpdate
     {
         [Inject]
         static readonly WarriorController _warriorController;
@@ -39,12 +40,16 @@ namespace GameLogic.Controllers
         static readonly ArcherController _archerController;
 
         [Inject]
-        static readonly UpdateArmyCenterController _armyCenterController;
+        static readonly UpdateArmyCenterController _updateArmyCenterController;
+
+        [Inject]
+        static readonly InitializeBattleModelController _battleModelController;
 
         // todo: should be possible to inject directly
         readonly IUnitController[] _unitControllers = new IUnitController[2];
 
         IBattleModel _battleModel;
+        Action<int>[] _behaviours;
 
         [Preserve]
         GameLogicMainController() { }
@@ -55,7 +60,13 @@ namespace GameLogic.Controllers
             _unitControllers[1] = _archerController;
         }
 
-        Action<int>[] _behaviours;
+        public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
+        {
+            IBattleModel model = new BattleModel(armies);
+            _battleModel = model;
+            _updateArmyCenterController.Initialize(_battleModel);
+            _battleModelController.InitializeModel(model, spawnZones);
+        }
 
         public void CustomUpdate()
         {
@@ -64,12 +75,12 @@ namespace GameLogic.Controllers
 
             GameLogicData.DeltaTime = Time.deltaTime;
 
-            _armyCenterController.CustomUpdate();
+            _updateArmyCenterController.CustomUpdate();
 
             var job1 = new MoveTowardCenterJob
             {
                 Positions = CoreData.UnitCurrPos,
-                CenterOfArmies = _armyCenterController.CenterOfArmies
+                CenterOfArmies = _updateArmyCenterController.CenterOfArmies
             };
             JobHandle handle1 = job1.Schedule(CoreData.UnitCurrPos.Length, 1); // todo: investigate innerloop batch count
             handle1.Complete();
@@ -86,30 +97,39 @@ namespace GameLogic.Controllers
 
                 for (int unitId = 0; unitId < units.Length; unitId++)
                 {
-                    ref UnitModel unit = ref units[unitId];
-                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
-                    foreach (Memory<UnitModel> memory in allies)
-                        PushAwayFromAllies(unit.Id, memory.Span);
+                    try
+                    {
+                        ref UnitModel unit = ref units[unitId];
+                        Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
 
-                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
-                    foreach (Memory<UnitModel> memory in enemies)
-                        PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
+                        foreach (Memory<UnitModel> memory in allies)
+                            PushAwayFromAllies(unit.Id, memory.Span);
 
-                    unit.AttackCooldown -= GameLogicData.DeltaTime;
+                        Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
+                        foreach (Memory<UnitModel> memory in enemies)
+                        {
+                            // todo: additional check if not overwriting in case of more than 2 armies
+                            int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
+                            unit.NearestEnemyId = nearestEnemyId;
+                        }
 
-                    // todo: we know the strateg beforehand
-                    //_unitControllers[unit.UnitType].GetBehavior(Strategy.Basic)(unitId); // todo: this breaks
+                        unit.AttackCooldown -= GameLogicData.DeltaTime;
+                    }
+                    catch (Exception e)
+                    {
+                        int gg = 5;
+                    }
+                    
                 }
 
-                // todo: retrieve beforehand
-                Action<int> action = i => { };
-                for (int unitType = 0; unitType < 2; unitType++)
+                /*for (int unitType = 0; unitType < 2; unitType++)
                 {
+                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic);
                     _battleModel.GetUnits(armyId, unitType);
 
                     for (int unitId = 0; unitId < units.Length; unitId++)
-                        action(unitId);
-                }
+                        action(armyId, unitType, _battleModel);
+                }*/
             }
         }
 
@@ -145,7 +165,7 @@ namespace GameLogic.Controllers
             CoreData.UnitCurrPos[unitId] -= posDelta;
         }
 
-        static void PushAwayFromEnemiesAndFindNearest(int unitId, Span<UnitModel> enemies)
+        static int PushAwayFromEnemiesAndFindNearest(int unitId, Span<UnitModel> enemies)
         {
             float2 currPos = CoreData.UnitCurrPos[unitId];
 
@@ -178,8 +198,7 @@ namespace GameLogic.Controllers
 
             }
 
-            // todo: additional check if not overwriting in case of more than 2 armies
-            CoreData.Units[unitId].NearestEnemyId = nearestEnemyId;
+            return nearestEnemyId;
         }
 
         /// <summary>

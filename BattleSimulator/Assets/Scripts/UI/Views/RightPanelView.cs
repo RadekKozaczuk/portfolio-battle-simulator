@@ -30,14 +30,16 @@ namespace UI.Views
 
         static void StartAction()
         {
+            // todo: should be taken from the UI
             var fakeArmy = new List<ArmyModel>
             {
                 new (100, 0, Strategy.Basic, Strategy.Basic),
                 new (100, 0, Strategy.Basic, Strategy.Basic)
             };
 
-            PresentationViewModel.GetSpawnBounds(out Bounds left, out Bounds right);
-            GameLogicViewModel.InitializeBattleModel(fakeArmy, left, right);
+            Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();
+            GameLogicViewModel.InitializeBattle(fakeArmy, spawnZones);
+            PresentationViewModel.InstantiateUnits(fakeArmy);
             GameStateService.ChangeState(GameState.Gameplay);
         }
 

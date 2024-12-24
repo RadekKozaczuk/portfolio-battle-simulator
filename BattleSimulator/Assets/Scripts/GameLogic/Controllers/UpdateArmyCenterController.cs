@@ -7,6 +7,8 @@ using GameLogic.Interfaces;
 using JetBrains.Annotations;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Assertions;
+using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
 {
@@ -28,14 +30,11 @@ namespace GameLogic.Controllers
         }
         float2 _centerOfArmies;
 
-        readonly float2[] _armyCenters;
+        float2[] _armyCenters;
         IBattleModel _model;
 
-        // todo: should be manually called
-        void Initialize(IBattleModel model)
-        {
-            _model = model;
-        }
+        [Preserve]
+        UpdateArmyCenterController() { }
 
         public void CustomUpdate()
         {
@@ -46,13 +45,27 @@ namespace GameLogic.Controllers
                 Span<UnitModel> units = _model.GetUnits(armyId);
 
                 for (int i = 0; i < units.Length; i++)
-                    partialSum += CoreData.UnitCurrPos[units[i].Id];
+                {
+                    ref UnitModel unit = ref units[i];
+
+                    if (unit.Health > 0)
+                        partialSum += CoreData.UnitCurrPos[unit.Id];
+                }
 
                 _armyCenters[armyId] = partialSum;
                 sum += partialSum;
             }
 
             CenterOfArmies = sum;
+        }
+
+        // todo: should be manually called
+        internal void Initialize(IBattleModel model)
+        {
+            Assert.IsNull(_model);
+
+            _model = model;
+            _armyCenters = new float2[_model.ArmyCount];
         }
 
         internal float2 GetArmyCenter(int armyId) => _armyCenters[armyId];

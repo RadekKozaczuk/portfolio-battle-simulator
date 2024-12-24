@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Core.Models;
 using GameLogic.Interfaces;
-using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameLogic.Models
@@ -15,8 +14,10 @@ namespace GameLogic.Models
 
         readonly int[] _armyStarts;
         readonly int[] _armyLengths;
+        readonly int[] _armyLengthSums; // running sums
         readonly int[] _unitTypeStarts;
         readonly int[] _unitTypeLengths;
+        readonly int[] _unitTypeLengthsSums; // running sums
 
         /// <summary>
         /// Contains all the units from all armies.
@@ -35,6 +36,7 @@ namespace GameLogic.Models
 
             _armyStarts = new int[_armyCount];
             _armyLengths = new int[_armyCount];
+            _armyLengthSums = new int[_armyCount];
 
             int sum;
             int totalSum = 0;
@@ -44,11 +46,13 @@ namespace GameLogic.Models
                 sum = armies[armyId].UnitCount;
                 _armyLengths[armyId] = sum;
                 totalSum += sum;
+                _armyLengthSums[armyId] = totalSum;
             }
 
             _unitTypeCount = armies[0].UnitTypeCount; // this is equal for all armies
             _unitTypeStarts = new int[_armyCount * _unitTypeCount];
             _unitTypeLengths = new int[_armyCount * _unitTypeCount];
+            _unitTypeLengthsSums = new int[_armyCount * _unitTypeCount];
 
             totalSum = 0;
             for (int armyId = 0; armyId < _armyCount; armyId++)
@@ -59,6 +63,7 @@ namespace GameLogic.Models
                     sum = armies[armyId].GetUnitCount(unitTypeId);
                     _unitTypeLengths[index] = sum;
                     totalSum += sum;
+                    _unitTypeLengthsSums[index] = totalSum;
                 }
 
             int id = 0;
@@ -115,46 +120,30 @@ namespace GameLogic.Models
         /// <returns>All units from the given army except for the unit with the given ID.</returns>
         Memory<UnitModel>[] IBattleModel.GetUnitsExcept(int armyId, int exceptUnitId)
         {
-            if (armyId == 1 && exceptUnitId == 101)
-            {
-                Debug.Break();
-            }
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
+                          "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
 
-            // todo: exceptUnitId can be sometimes 101
-            try
+            Assert.IsTrue(exceptUnitId >= 0 && exceptUnitId < _units.Length,
+                          "UnitId must be a valid number ranging from 0 to the total number of units (exclusive).");
 
-            {
+            int start1 = _armyStarts[armyId];
 
-                Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
-                              "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
+            if (start1 == exceptUnitId) // the excluded unit is on the first spot
+                return new Memory<UnitModel>[] {new(_units, _armyStarts[armyId] + 1, _armyLengths[armyId] - 1)};
 
-                Assert.IsTrue(exceptUnitId >= 0 && exceptUnitId < _units.Length,
-                              "UnitId must be a valid number ranging from 0 to the total number of units (exclusive).");
+            if (start1 + _armyLengths[armyId] - 1 == exceptUnitId) // the excluded unit is on the last spot
+                return new Memory<UnitModel>[] {new(_units, _armyStarts[armyId], _armyLengths[armyId] - 1)};
 
-                int start1 = _armyStarts[armyId];
+            // the excluded unit is outside the requested block
+            if (exceptUnitId < start1 || exceptUnitId > start1 + _armyLengths[armyId] - 1)
+                return new Memory<UnitModel>[] {new(_units, start1, _armyLengths[armyId])};
 
-                if (start1 == exceptUnitId) // the excluded unit is on the first spot
-                    return new Memory<UnitModel>[] {new(_units, _armyStarts[armyId] + 1, _armyLengths[armyId] - 1)};
+            // is somewhere in the middle therefore there will be two memories
+            int length1 = exceptUnitId - _armyStarts[armyId];
+            int start2 = exceptUnitId + 1;
+            int length2 = _armyLengthSums[armyId] - start2;
 
-                if (start1 + _armyLengths[armyId] - 1 == exceptUnitId) // the excluded unit is on the last spot
-                    return new Memory<UnitModel>[] {new(_units, _armyStarts[armyId], _armyLengths[armyId] - 1)};
-
-                // the excluded unit is outside the requested block
-                if (exceptUnitId < start1 || exceptUnitId > start1 + _armyLengths[armyId] - 1)
-                    return new Memory<UnitModel>[] {new(_units, start1, _armyLengths[armyId])};
-
-                // is somewhere in the middle therefore there will be two memories
-                int length1 = _armyStarts[armyId] + exceptUnitId - 1;
-                int start2 = exceptUnitId + 1;
-                int length2 = _armyLengths[armyId] - exceptUnitId - 1;
-
-                return new Memory<UnitModel>[] {new(_units, start1, length1), new(_units, start2, length2)};
-            }
-            catch (Exception e)
-            {
-                int www = 4;
-                return null;
-            }
+            return new Memory<UnitModel>[] {new(_units, start1, length1), new(_units, start2, length2)};
         }
 
         /// <summary>
@@ -210,9 +199,9 @@ namespace GameLogic.Models
             if (exceptUnitId < start1 || exceptUnitId > end)
                 return new Memory<UnitModel>[] {new(_units, start1, _unitTypeLengths[index])};
 
-            int length1 = _unitTypeStarts[index] + exceptUnitId - 1;
+            int length1 = exceptUnitId - _unitTypeStarts[index];
             int start2 = exceptUnitId + 1;
-            int length2 = _unitTypeLengths[index] - exceptUnitId - 1;
+            int length2 = _unitTypeLengthsSums[index] - start2;
 
             return new Memory<UnitModel>[]
             {

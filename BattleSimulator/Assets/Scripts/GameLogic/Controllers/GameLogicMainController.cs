@@ -97,29 +97,21 @@ namespace GameLogic.Controllers
 
                 for (int unitId = 0; unitId < units.Length; unitId++)
                 {
-                    try
+                    ref UnitModel unit = ref units[unitId];
+                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
+
+                    foreach (Memory<UnitModel> memory in allies)
+                        PushAwayFromAllies(unit.Id, memory.Span);
+
+                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
+                    foreach (Memory<UnitModel> memory in enemies)
                     {
-                        ref UnitModel unit = ref units[unitId];
-                        Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
-
-                        foreach (Memory<UnitModel> memory in allies)
-                            PushAwayFromAllies(unit.Id, memory.Span);
-
-                        Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
-                        foreach (Memory<UnitModel> memory in enemies)
-                        {
-                            // todo: additional check if not overwriting in case of more than 2 armies
-                            int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
-                            unit.NearestEnemyId = nearestEnemyId;
-                        }
-
-                        unit.AttackCooldown -= GameLogicData.DeltaTime;
+                        // todo: additional check if not overwriting in case of more than 2 armies
+                        int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
+                        unit.NearestEnemyId = nearestEnemyId;
                     }
-                    catch (Exception e)
-                    {
-                        int gg = 5;
-                    }
-                    
+
+                    unit.AttackCooldown -= GameLogicData.DeltaTime;
                 }
 
                 /*for (int unitType = 0; unitType < 2; unitType++)

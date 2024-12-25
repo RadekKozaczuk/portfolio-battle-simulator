@@ -81,8 +81,9 @@ namespace Presentation.Controllers
                     UnitView prefab = _unitConfig.UnitPrefabs[unitType];
                     for (int i = 0; i < army.GetUnitCount(unitType); i++)
                     {
-                        UnitView view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
-                        transforms[unitId] = view.transform;
+                        IUnit view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
+                        view.Renderer.material.color = army.Color;
+                        transforms[unitId] = view.Transform;
                         PresentationData.Units[unitId] = view;
                         unitId++;
                     }

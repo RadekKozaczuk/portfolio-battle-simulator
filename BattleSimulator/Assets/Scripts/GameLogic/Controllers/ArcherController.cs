@@ -111,7 +111,7 @@ namespace GameLogic.Controllers
 
         static void Defensive(int armyId, int unitType, IBattleModel battleModel)
         {
-            
+
         }
     }
 }

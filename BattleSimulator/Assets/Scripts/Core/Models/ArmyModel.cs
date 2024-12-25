@@ -1,47 +1,38 @@
-﻿using Core.Enums;
+﻿using System.Linq;
+using Core.Enums;
+using Core.Interfaces;
+using UnityEngine;
 
 namespace Core.Models
 {
     /// <summary>
     /// Representation of the army. The amount and the strategy of every unit type.
     /// </summary>
-    public class ArmyModel
+    public class ArmyModel : IArmyModel
     {
-        public int UnitCount => Warriors + Archers;
+        public int UnitCount => _amounts.Sum();
+        public int UnitTypeCount => _amounts.Length;
+        public readonly Color Color;
 
-        public int UnitTypeCount => _units.Length;
+        readonly int[] _amounts;
+        readonly Strategy[] _strategies;
 
-        public int WarriorCount => _units[0];
-
-        public int ArcherCount => _units[1];
-
-        public readonly int Warriors;
-        public readonly int Archers;
-        public readonly Strategy StrategyWarrior;
-        public readonly Strategy StrategyArcher;
-
-        readonly int[] _units;
-
-        public ArmyModel(int warriors, int archers)
+        public ArmyModel(int unitType1Count, int unitType2Count)
         {
-            Warriors = warriors;
-            Archers = archers;
-            _units = new [] {warriors, archers};
-
-            StrategyWarrior = Strategy.Basic;
-            StrategyArcher = Strategy.Basic;
+            _amounts = new[] {unitType1Count, unitType2Count};
+            _strategies = new[] {Strategy.Basic, Strategy.Basic};
+            Color = Color.red;
         }
 
-        public ArmyModel(int warriors, int archers, Strategy strategyWarrior, Strategy strategyArcher)
+        public ArmyModel(int[] unitAmounts, Strategy[] strategies, Color color)
         {
-            Warriors = warriors;
-            Archers = archers;
-            _units = new [] {warriors, archers};
-
-            StrategyWarrior = strategyWarrior;
-            StrategyArcher = strategyArcher;
+            _amounts = unitAmounts;
+            _strategies = strategies;
+            Color = color;
         }
 
-        public int GetUnitCount(int unitType) => _units[unitType];
+        public int GetUnitCount(int unitType) => _amounts[unitType];
+
+        public Strategy GetStrategy(int unitType) => _strategies[unitType];
     }
 }

@@ -102,7 +102,7 @@ namespace GameLogic.Controllers
                     Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unitId);
 
                     foreach (Memory<UnitModel> memory in allies)
-                        PushAwayFromAllies(unitId, memory.Span); // todo: something is broken here
+                        PushAwayFromAllies(unitId, memory.Span);
 
                     Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
                     foreach (Memory<UnitModel> memory in enemies)
@@ -152,7 +152,7 @@ namespace GameLogic.Controllers
                 if (math.any(difference))
                 {
                     float2 normal = math.normalize(difference);
-                    posDelta -= normal * (2.0f - distance) * GameLogicData.DeltaTime * 10;
+                    posDelta -= normal * (2.0f - distance);
                 }
             }
 
@@ -174,7 +174,7 @@ namespace GameLogic.Controllers
                 if (enemy.Health <= 0)
                     continue;
 
-                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id]; // todo: this maybe be NaN
+                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id];
                 float distance = math.distance(currPos, enemyCurrPos);
 
                 // find nearest
@@ -194,7 +194,7 @@ namespace GameLogic.Controllers
                 if (math.any(difference))
                 {
                     float2 normal = math.normalize(difference);
-                    posDelta -= normal * (2.0f - distance) * GameLogicData.DeltaTime * 10;
+                    posDelta -= normal * (2.0f - distance);
                 }
             }
 

@@ -101,10 +101,10 @@ namespace GameLogic.Controllers
                     int unitId = units[i].Id;
                     Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unitId);
 
-                    //foreach (Memory<UnitModel> memory in allies)
-                    //    PushAwayFromAllies(unitId, memory.Span); // todo: something is broken here
+                    foreach (Memory<UnitModel> memory in allies)
+                        PushAwayFromAllies(unitId, memory.Span); // todo: something is broken here
 
-                    /*Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
+                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
                     foreach (Memory<UnitModel> memory in enemies)
                     {
                         // todo: additional check if not overwriting in case of more than 2 armies
@@ -112,27 +112,14 @@ namespace GameLogic.Controllers
                         units[i].NearestEnemyId = nearestEnemyId;
                     }
 
-                    units[i].AttackCooldown -= GameLogicData.DeltaTime;*/
+                    units[i].AttackCooldown -= GameLogicData.DeltaTime;
                 }
 
-                // check if nearest ID is set
-                /*bool set = true;
-                for (int i = 0; i < units.Length; i++)
-                {
-                    ref UnitModel unit = ref units[i];
-
-                    if (unit.NearestEnemyId < 0)
-                        set = false;
-                }*/
-
-                /*for (int unitType = 0; unitType < 2; unitType++)
+                for (int unitType = 0; unitType < 2; unitType++)
                 {
                     Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic);
-                    _battleModel.GetUnits(armyId, unitType);
-
-                    for (int unitId = 0; unitId < units.Length; unitId++)
-                        action(armyId, unitType, _battleModel);
-                }*/
+                    action(armyId, unitType, _battleModel);
+                }
             }
         }
 
@@ -158,11 +145,15 @@ namespace GameLogic.Controllers
                 if (distance >= 2f)
                     continue;
 
-                // comparing with yourself would result in NaN
-                float2 difference = otherUnitPos - currPos;
-                // ReSharper disable once InvertIf
-                float2 normal = math.normalize(difference);
-                posDelta -= normal * (2.0f - distance); // todo: maybe we can move the normal calculation to later
+                // calculating normal from 0,0 results in a NaN
+                float2 difference = currPos - otherUnitPos;
+
+                // in case units are on the same spot we ignore the calculation to prevent error from happening
+                if (math.any(difference))
+                {
+                    float2 normal = math.normalize(difference);
+                    posDelta -= normal * (2.0f - distance) * GameLogicData.DeltaTime * 10;
+                }
             }
 
             CoreData.UnitCurrPos[unitId] -= posDelta;
@@ -171,6 +162,7 @@ namespace GameLogic.Controllers
         static int PushAwayFromEnemiesAndFindNearest(int unitId, Span<UnitModel> enemies)
         {
             float2 currPos = CoreData.UnitCurrPos[unitId];
+            float2 posDelta = float2.zero;
 
             // on enemies calculate evasion as well as the nearest unit id
             float distanceToNearest = float.MaxValue;
@@ -182,7 +174,7 @@ namespace GameLogic.Controllers
                 if (enemy.Health <= 0)
                     continue;
 
-                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id];
+                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id]; // todo: this maybe be NaN
                 float distance = math.distance(currPos, enemyCurrPos);
 
                 // find nearest
@@ -195,11 +187,18 @@ namespace GameLogic.Controllers
                 if (distance >= 2f)
                     continue;
 
-                float2 difference = enemyCurrPos - currPos;
-                float2 normal = math.normalize(difference);
-                CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
+                // calculating normal from 0,0 results in a NaN
+                float2 difference = currPos - enemyCurrPos;
+
+                // in case units are on the same spot we ignore the calculation to prevent error from happening
+                if (math.any(difference))
+                {
+                    float2 normal = math.normalize(difference);
+                    posDelta -= normal * (2.0f - distance) * GameLogicData.DeltaTime * 10;
+                }
             }
 
+            CoreData.UnitCurrPos[unitId] -= posDelta;
             return nearestEnemyId;
         }
 

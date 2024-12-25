@@ -25,8 +25,8 @@ namespace GameLogic.Controllers
             // todo: for now here - should be in config
             CoreData.UnitStats = new[]
             {
-                new UnitStatsModel(50, 5, 20, 2.5f, 1f, 0f, 0.1f, 20f),
-                new UnitStatsModel(5, 0, 10, 20f, 5f, 1f, 0.1f, 20f)
+                new UnitStatsModel(50, 5, 20, 2.5f, 1f, 0f, 10f, 20f),
+                new UnitStatsModel(5, 0, 10, 20f, 5f, 1f, 10f, 20f)
             };
 
             // todo: in the future add GetUnitCount

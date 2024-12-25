@@ -52,24 +52,6 @@ namespace GameLogic.Controllers
             }
         }
 
-        /*static void Basic(int unitId)
-        {
-            ref UnitModel model = ref CoreData.Units[unitId];
-            ref UnitModel enemyModel = ref CoreData.Units[model.NearestEnemyId];
-            Logic(ref model, ref enemyModel);
-        }
-
-        static void Defensive(int unitId)
-        {
-            ref UnitModel model = ref CoreData.Units[unitId];
-            ref UnitModel enemyModel = ref CoreData.Units[model.NearestEnemyId];
-
-            ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
-            SharedUnitBehaviors.MoveTowardsCenter(ref model, CoreData.ArmyCenters[enemyModel.ArmyId], in sharedData);
-
-            Logic(ref model, ref enemyModel);
-        }*/
-
         static void Logic(ref UnitModel model, ref UnitModel enemyModel)
         {
             ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
@@ -80,11 +62,17 @@ namespace GameLogic.Controllers
 
             float2 pos = CoreData.UnitCurrPos[model.Id];
             float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
-            float2 dirToEnemy = math.normalize(enemyPos - pos);
-            CoreData.UnitCurrPos[model.Id] += dirToEnemy * sharedData.Speed; // todo: should also be multiplied by time
+            float2 difference = enemyPos - pos;
+
+            // enemy and pos maybe the same and in such case normal would have been NaN so this check is needed
+            if (math.any(difference))
+            {
+                float2 dirToEnemy = math.normalize(enemyPos - pos);
+                CoreData.UnitCurrPos[model.Id] += dirToEnemy * sharedData.Speed * GameLogicData.DeltaTime;
+            }
 
             // Attack Logic
-            if (model.AttackCooldown > 0)
+            /*if (model.AttackCooldown > 0)
                 return;
 
             float distance = math.distance(pos, enemyPos);
@@ -96,7 +84,7 @@ namespace GameLogic.Controllers
             model.Attacked = true;
             model.LastIncomingAttackDirection = dirToEnemy;
             model.AttackCooldown = sharedData.AttackCooldown;
-            enemyModel.HealthDelta -= sharedData.Attack - enemySharedData.Defense;
+            enemyModel.HealthDelta -= sharedData.Attack - enemySharedData.Defense;*/
         }
     }
 }

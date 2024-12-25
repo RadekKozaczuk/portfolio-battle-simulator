@@ -98,7 +98,7 @@ namespace Presentation.Controllers
             Camera camera = PresentationSceneReferenceHolder.GameplayCamera;
             Vector3 pos = camera.transform.position;
             Vector3 forwardTarget = (center - pos).normalized;
-            camera.transform.forward += (forwardTarget - pos) * 0.1f;
+            camera.transform.forward += forwardTarget * 0.1f;
         }
     }
 }

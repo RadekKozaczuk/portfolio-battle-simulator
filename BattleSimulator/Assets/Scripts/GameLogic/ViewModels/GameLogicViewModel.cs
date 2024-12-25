@@ -6,8 +6,6 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
-using GameLogic.Interfaces;
-using GameLogic.Models;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
@@ -37,9 +35,7 @@ namespace GameLogic.ViewModels
 
         public static void GameplayOnExit() { }
 
-        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones)
-        {
+        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones) =>
             _mainController.InitializeModel(armies, spawnZones);
-        }
     }
 }

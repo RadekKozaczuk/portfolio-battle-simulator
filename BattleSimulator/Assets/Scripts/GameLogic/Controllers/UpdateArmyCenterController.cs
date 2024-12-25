@@ -34,32 +34,28 @@ namespace GameLogic.Controllers
         IBattleModel _model;
 
         [Preserve]
-        UpdateArmyCenterController() { }
+        internal UpdateArmyCenterController() { } // todo: in the future it should be private and injected
 
         public void CustomUpdate()
         {
             float2 sum = float2.zero;
-            float2 partialSum = float2.zero;
             for (int armyId = 0; armyId < _armyCenters.Length; armyId++)
             {
+                float2 armySum = float2.zero;
                 Span<UnitModel> units = _model.GetUnits(armyId);
 
                 for (int i = 0; i < units.Length; i++)
-                {
-                    ref UnitModel unit = ref units[i];
+                    if (units[i].Health > 0)
+                        armySum += CoreData.UnitCurrPos[units[i].Id];
 
-                    if (unit.Health > 0)
-                        partialSum += CoreData.UnitCurrPos[unit.Id];
-                }
-
-                _armyCenters[armyId] = partialSum;
-                sum += partialSum;
+                float2 center = armySum / units.Length;
+                _armyCenters[armyId] = center;
+                sum += center;
             }
 
-            CenterOfArmies = sum;
+            CenterOfArmies = sum / _armyCenters.Length;
         }
 
-        // todo: should be manually called
         internal void Initialize(IBattleModel model)
         {
             Assert.IsNull(_model);

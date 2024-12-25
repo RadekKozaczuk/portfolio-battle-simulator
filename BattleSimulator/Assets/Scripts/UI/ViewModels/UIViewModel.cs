@@ -42,6 +42,7 @@ namespace UI.ViewModels
                 PopupSystem.CloseCurrentPopup();
         }
 
-        public static void GameplayOnExit() => _uiConfig.InputActionAsset.FindActionMap(UIConstants.PlayerActionMap).Disable();
+        public static void GameplayOnExit() =>
+            _uiConfig.InputActionAsset.FindActionMap(UIConstants.PlayerActionMap).Disable();
     }
 }

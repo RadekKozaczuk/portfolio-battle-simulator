@@ -8,26 +8,29 @@ namespace GameLogic.Jobs
     /// <summary>
     /// Projectile direction does not change mid-flight.
     /// </summary>
-    public struct MoveTowardCenterJob : IJobParallelFor
+    internal struct MoveTowardCenterJob : IJobParallelFor
     {
         // Jobs declare all data that will be accessed in the job
         // By declaring it as read only, multiple jobs are allowed to access the data in parallel
-        public NativeArray<float2> Positions;
+        internal NativeArray<float2> Positions;
 
         [ReadOnly]
-        public float2 CenterOfArmies;
+        internal float2 CenterOfArmies;
+
+        [ReadOnly]
+        internal float DeltaTime;
 
         // The code actually running on the job
         public void Execute(int index)
         {
             float2 currPos = Positions[index];
-            float distanceToCenter = math.distance(currPos, CenterOfArmies);
+            float distance = math.distance(currPos, CenterOfArmies);
 
-            if (distanceToCenter <= 80.0f)
+            if (distance <= 80.0f)
                 return;
 
             float2 normal = math.normalize(CenterOfArmies - currPos);
-            Positions[index] -= normal * (80.0f - distanceToCenter);
+            Positions[index] -= normal * (80.0f - distance) * DeltaTime;
         }
     }
 }

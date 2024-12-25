@@ -17,16 +17,14 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly UpdateArmyCenterController _updateArmyCenterController;
 
-        //readonly Action<int>[] _strategies = {Basic, Defensive};
-        readonly Action<int, int, IBattleModel>[] _strategies = {BasicV2, DefensiveV2};
+        readonly Action<int, int, IBattleModel>[] _strategies = {Basic, Defensive};
 
         [Preserve]
         WarriorController() { }
 
-        //Action<int> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
         Action<int, int, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
 
-        static void BasicV2(int armyId, int unitType, IBattleModel battleModel)
+        static void Basic(int armyId, int unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
@@ -38,7 +36,7 @@ namespace GameLogic.Controllers
             }
         }
 
-        static void DefensiveV2(int armyId, int unitType, IBattleModel battleModel)
+        static void Defensive(int armyId, int unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 

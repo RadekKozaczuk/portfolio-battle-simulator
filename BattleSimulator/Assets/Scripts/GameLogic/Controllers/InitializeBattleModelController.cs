@@ -33,20 +33,17 @@ namespace GameLogic.Controllers
             Span<UnitModel> units = battleModel.GetUnits();
 
             CreateNativeArrays(units.Length);
-            CreateUnitModels(2, 2, battleModel, spawnZones);
+            CreateUnitModels(2, battleModel, spawnZones);
 
             // apply health
             for (int armyId = 0; armyId < 2; armyId++)
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
                     int health = CoreData.UnitStats[unitType].Health;
-                    Span<UnitModel> qq = battleModel.GetUnits(armyId, unitType);
+                    Span<UnitModel> span = battleModel.GetUnits(armyId, unitType);
 
-                    foreach (UnitModel model in qq)
-                    {
-                        ref UnitModel w = ref battleModel.GetUnit(model.Id);
-                        w.Health = health;
-                    }
+                    for (int i = 0; i < span.Length; i++)
+                        span[i].Health = health;
                 }
         }
 
@@ -61,23 +58,19 @@ namespace GameLogic.Controllers
             CoreData.Projectiles = new ProjectileModel[10]; // initially 10, does upscale when needed
         }
 
-        void CreateUnitModels(int armyCount, int unitTypeCount, IBattleModel battleModel, Bounds[] spawnZones)
+        void CreateUnitModels(int armyCount, IBattleModel battleModel, Bounds[] spawnZones)
         {
             int index = 0;
 
             for (int armyId = 0; armyId < armyCount; armyId++)
             {
                 Bounds bounds = spawnZones[armyId];
+                Span<UnitModel> units = battleModel.GetUnits(armyId);
 
-                for (int unitType = 0; unitType < unitTypeCount; unitType++)
+                for (int i = 0; i < units.Length; i++)
                 {
-                    Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
-
-                    for (int i = 0; i < units.Length; i++)
-                    {
-                        CoreData.UnitCurrPos[index] = GetRandomPosInBounds(bounds);
-                        index++;
-                    }
+                    CoreData.UnitCurrPos[index] = GetRandomPosInBounds(bounds);
+                    index++;
                 }
             }
         }

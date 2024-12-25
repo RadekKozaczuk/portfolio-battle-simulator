@@ -74,16 +74,17 @@ namespace GameLogic.Controllers
                 return;
 
             GameLogicData.DeltaTime = Time.deltaTime;
-
             _updateArmyCenterController.CustomUpdate();
 
-            var job1 = new MoveTowardCenterJob
+            var job = new MoveTowardCenterJob
             {
                 Positions = CoreData.UnitCurrPos,
-                CenterOfArmies = _updateArmyCenterController.CenterOfArmies
+                CenterOfArmies = _updateArmyCenterController.CenterOfArmies,
+                DeltaTime = GameLogicData.DeltaTime
             };
-            JobHandle handle1 = job1.Schedule(CoreData.UnitCurrPos.Length, 1); // todo: investigate innerloop batch count
-            handle1.Complete();
+
+            JobHandle handle = job.Schedule(CoreData.UnitCurrPos.Length, 32); // todo: investigate innerloop batch count
+            handle.Complete();
 
             // todo: Parallel For appears to be slower than single-threaded execution
             // todo: to check if splitting the execution into very small amount of tasks (f.e. 2 or 4) would be beneficial 
@@ -95,24 +96,34 @@ namespace GameLogic.Controllers
             {
                 Span<UnitModel> units = _battleModel.GetUnits(armyId);
 
-                for (int unitId = 0; unitId < units.Length; unitId++)
+                for (int i = 0; i < units.Length; i++)
                 {
-                    ref UnitModel unit = ref units[unitId];
-                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unit.Id);
+                    int unitId = units[i].Id;
+                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unitId);
 
-                    foreach (Memory<UnitModel> memory in allies)
-                        PushAwayFromAllies(unit.Id, memory.Span);
+                    //foreach (Memory<UnitModel> memory in allies)
+                    //    PushAwayFromAllies(unitId, memory.Span); // todo: something is broken here
 
-                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
+                    /*Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
                     foreach (Memory<UnitModel> memory in enemies)
                     {
                         // todo: additional check if not overwriting in case of more than 2 armies
-                        int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unit.Id, memory.Span);
-                        unit.NearestEnemyId = nearestEnemyId;
+                        int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unitId, memory.Span);
+                        units[i].NearestEnemyId = nearestEnemyId;
                     }
 
-                    unit.AttackCooldown -= GameLogicData.DeltaTime;
+                    units[i].AttackCooldown -= GameLogicData.DeltaTime;*/
                 }
+
+                // check if nearest ID is set
+                /*bool set = true;
+                for (int i = 0; i < units.Length; i++)
+                {
+                    ref UnitModel unit = ref units[i];
+
+                    if (unit.NearestEnemyId < 0)
+                        set = false;
+                }*/
 
                 /*for (int unitType = 0; unitType < 2; unitType++)
                 {
@@ -187,7 +198,6 @@ namespace GameLogic.Controllers
                 float2 difference = enemyCurrPos - currPos;
                 float2 normal = math.normalize(difference);
                 CoreData.UnitCurrPos[unitId] -= normal * (2.0f - distance);
-
             }
 
             return nearestEnemyId;

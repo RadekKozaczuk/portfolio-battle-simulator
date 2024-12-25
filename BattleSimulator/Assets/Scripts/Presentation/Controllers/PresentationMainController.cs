@@ -77,17 +77,19 @@ namespace Presentation.Controllers
             int unitId = 0;
             foreach (ArmyModel army in armies)
                 for (int unitType = 0; unitType < 2; unitType++)
+                {
+                    UnitView prefab = _unitConfig.UnitPrefabs[unitType];
                     for (int i = 0; i < army.GetUnitCount(unitType); i++)
                     {
-                        UnitView prefab = _unitConfig.UnitPrefabs[unitType];
                         UnitView view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
-                        transforms[i] = view.transform;
-
+                        transforms[unitId] = view.transform;
                         PresentationData.Units[unitId] = view;
                         unitId++;
                     }
+                }
 
             PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);
+            _loadingFinished = true;
         }
 
         [React]

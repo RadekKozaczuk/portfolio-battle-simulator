@@ -28,6 +28,7 @@ namespace Presentation.Views
         {
             Assert.IsTrue(movementSpeed is >= 0f and <= 1f,
                           "MovementSpeed animation parameter must be a value from 0 to 1 (both inclusive) to match the animation.");
+
             _animator.SetFloat(_movementSpeed, 1f);
         }
 

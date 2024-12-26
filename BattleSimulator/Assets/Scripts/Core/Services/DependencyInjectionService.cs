@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Core.Interfaces;
 using JetBrains.Annotations;
@@ -13,6 +14,38 @@ namespace Core.Services
     /// <typeparam name="TScriptableObject">Always ScriptableObject type</typeparam>
     public static class DependencyInjectionService<TScriptableObject> where TScriptableObject : class
     {
+        /// <summary>
+        /// Every instance (controller or viewmodel) can be identified by a variety  of different elements.
+        /// Typically, the type is enough but in more complicated cases the name and the interfaces are needed as well.
+        /// </summary>
+        class DependencyUnit
+        {
+            // identifiers
+            internal readonly Type Type;
+            internal readonly string? Name;
+            internal readonly Type[] Interfaces;
+
+            // instance
+            internal readonly object Instance;
+
+            internal DependencyUnit(Type type, object instance)
+            {
+                Type = type;
+                Instance = instance;
+                Interfaces = Type.EmptyTypes;
+            }
+
+            internal DependencyUnit(Type type, string name, Type[] interfaces, object instance)
+            {
+                Type = type;
+                Name = name;
+                Interfaces = interfaces;
+                Instance = instance;
+            }
+        }
+
+        static readonly List<DependencyUnit> _dependencyUnits = new ();
+
         // ReSharper disable once StaticMemberInGenericType
         // ReSharper disable once IdentifierTypo
         static readonly List<IInitializable> _initializables = new();
@@ -21,7 +54,6 @@ namespace Core.Services
         public static void Inject(Func<Type, TScriptableObject?> findConfig, List<string>? additionalAssemblies = null)
         {
             Type injectAttribute = typeof(InjectAttribute);
-            var instances = new Dictionary<Type, object>();
             var awaitingInjectFields = new Queue<(Type ownerInstance, FieldInfo fieldInfo)>();
 
             var assemblyNames = new List<string>
@@ -40,11 +72,6 @@ namespace Core.Services
             for (int i = 0; i < assemblyNames.Count; i++)
                 assemblies[i] = Assembly.Load(assemblyNames[i]);
 
-            // todo: parallelization isn't faster as of yet. Maybe on bigger projects it will be
-            // test result (in Editor)
-            // Parallel: 17ms on average (5 measurements)
-            // Normal: 13ms on average (5 measurements) 
-
             bool signalsBound = false;
 
             foreach (Assembly asm in assemblies)
@@ -55,10 +82,8 @@ namespace Core.Services
                         continue;
 
                     // generally ignore interfaces expect for ISignal
-                    if (type.IsInterface)
-                        if (signalsBound)
-                            continue;
-                        else if (type.Name == "ISignal")
+                    if (!signalsBound)
+                        if (type is {IsInterface: true, Name: "ISignal"})
                         {
                             SignalService.BindSignals(type.GetMethods());
                             signalsBound = true;
@@ -83,7 +108,7 @@ namespace Core.Services
                             field.SetValue(type, config);
                         }
                         else if (Attribute.GetCustomAttributes(field, injectAttribute, false).Length > 0)
-                            if (instances.TryGetValue(field.GetType(), out object instance))
+                            if (TryGetInstance(field, out object? instance))
                                 field.SetValue(type, instance);
                             else
                                 awaitingInjectFields.Enqueue((type, field));
@@ -108,7 +133,7 @@ namespace Core.Services
                             throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve]");
 
                         object instance = constructors[0].Invoke(new object[] { });
-                        instances.Add(type, instance);
+                        AddDependencyUnit(type, instance);
                         SignalService.AddReactiveInstantiatable(instance);
 
                         if (typeof(IInitializable).IsAssignableFrom(type))
@@ -120,8 +145,11 @@ namespace Core.Services
             while (awaitingInjectFields.Count > 0)
             {
                 (Type ownerInstance, FieldInfo fieldInfo) = awaitingInjectFields.Dequeue();
-                instances.TryGetValue(fieldInfo.FieldType, out object instance);
-                fieldInfo.SetValue(ownerInstance, instance);
+
+                if (TryGetInstance(fieldInfo, out object? instance))
+                    fieldInfo.SetValue(ownerInstance, instance);
+                else
+                    throw new Exception("impossible state");
             }
         }
 
@@ -134,6 +162,79 @@ namespace Core.Services
         {
             foreach (IInitializable instance in _initializables)
                 instance.Initialize();
+        }
+
+        static void AddDependencyUnit(Type type, object instance)
+        {
+            // check interfaces 
+            Type[] interfaces = type.GetInterfaces();
+            if (interfaces.Length > 0)
+            {
+                string name;
+                // slice name
+                if (type.Name.EndsWith("Controller"))
+                    name = type.Name[..^10].ToLower();
+                else if (type.Name.EndsWith("ViewModel"))
+                    name = type.Name[..^9].ToLower();
+                else
+                    throw new Exception("Impossible state");
+
+                _dependencyUnits.Add(new DependencyUnit(type, name, interfaces, instance));
+            }
+            else
+            {
+                _dependencyUnits.Add(new DependencyUnit(type, instance));
+            }
+        }
+
+        static bool TryGetInstance(FieldInfo field, out object? instance)
+        {
+            Type fieldType = field.FieldType;
+
+            // if it is an interface we try to bind by interface and name
+            if (fieldType.IsInterface)
+            {
+                string name;
+
+                if (field.Name.EndsWith("Controller"))
+                    name = field.Name.Substring(1, field.Name.Length - 11).ToLower();
+                else if (field.Name.EndsWith("ViewModel"))
+                    name = field.Name.Substring(1, field.Name.Length - 10).ToLower();
+                else
+                    throw new Exception("Impossible state");
+
+                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+                foreach (DependencyUnit unit in _dependencyUnits)
+                {
+                    Type? inter = unit.Interfaces.FirstOrDefault(t => t == fieldType);
+
+                    if (inter == null)
+                        continue;
+
+                    if (unit.Name != name)
+                        continue;
+
+                    instance = unit.Instance;
+                    return true;
+                }
+            }
+            else
+            {
+                // find matching by type
+                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+                foreach (DependencyUnit unit in _dependencyUnits)
+                    if (unit.Type == fieldType)
+                    {
+                        instance = unit.Instance;
+                        return true;
+                    }
+
+                instance = null;
+                return false;
+            }
+
+            instance = null;
+            return false;
         }
     }
 }

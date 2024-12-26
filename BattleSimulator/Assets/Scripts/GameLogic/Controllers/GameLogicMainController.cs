@@ -34,10 +34,10 @@ namespace GameLogic.Controllers
     class GameLogicMainController : IInitializable, ICustomUpdate
     {
         [Inject]
-        static readonly WarriorController _warriorController;
+        static readonly IUnitController _warriorController;
 
         [Inject]
-        static readonly ArcherController _archerController;
+        static readonly IUnitController _archerController;
 
         [Inject]
         static readonly UpdateArmyCenterController _updateArmyCenterController;
@@ -116,7 +116,6 @@ namespace GameLogic.Controllers
                     units[i].AttackCooldown -= GameLogicData.DeltaTime;
                 }
 
-                if (armyId == 0)
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
                     Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic);

@@ -1,10 +1,11 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using Core;
 using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Scripting;
 #if DEVELOPMENT_BUILD
 using UnityEngine.Assertions;
@@ -63,16 +64,14 @@ namespace GameLogic.Controllers
             float2 pos = CoreData.UnitCurrPos[model.Id];
             float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
             float2 difference = enemyPos - pos;
+            float2 dirToEnemy = math.normalize(enemyPos - pos);
 
             // enemy and pos maybe the same and in such case normal would have been NaN so this check is needed
             if (math.any(difference))
-            {
-                float2 dirToEnemy = math.normalize(enemyPos - pos);
                 CoreData.UnitCurrPos[model.Id] += dirToEnemy * sharedData.Speed * GameLogicData.DeltaTime;
-            }
 
             // Attack Logic
-            /*if (model.AttackCooldown > 0)
+            if (model.AttackCooldown > 0)
                 return;
 
             float distance = math.distance(pos, enemyPos);
@@ -81,10 +80,10 @@ namespace GameLogic.Controllers
 
             ref UnitStatsModel enemySharedData = ref CoreData.UnitStats[enemyModel.UnitType];
 
-            model.Attacked = true;
-            model.LastIncomingAttackDirection = dirToEnemy;
+            Signals.UnitAttacked(model.Id);
             model.AttackCooldown = sharedData.AttackCooldown;
-            enemyModel.HealthDelta -= sharedData.Attack - enemySharedData.Defense;*/
+            enemyModel.HealthDelta -= sharedData.Attack - enemySharedData.Defense;
+            Signals.UnitHit(enemyModel.Id, new Vector3(dirToEnemy.x, 0, dirToEnemy.y));
         }
     }
 }

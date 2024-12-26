@@ -1,6 +1,4 @@
-﻿using Unity.Mathematics;
-
-namespace Core.Models
+﻿namespace Core.Models
 {
     public struct UnitModel
     {
@@ -26,12 +24,6 @@ namespace Core.Models
         public float AttackCooldown;
         public int NearestEnemyId;
 
-        /// <summary>
-        /// True, if the unit attacked this turn.
-        /// </summary>
-        public bool Attacked;
-        public float2 LastIncomingAttackDirection;
-
         public UnitModel(int id, int unitType, int armyId)
         {
             Id = id;
@@ -40,8 +32,6 @@ namespace Core.Models
             Health = 0;
             AttackCooldown = 0f;
             NearestEnemyId = int.MinValue;
-            Attacked = false;
-            LastIncomingAttackDirection = float2.zero;
             HealthDelta = 0;
         }
 
@@ -53,8 +43,6 @@ namespace Core.Models
             Health = health;
             AttackCooldown = 0f;
             NearestEnemyId = int.MinValue;
-            Attacked = false;
-            LastIncomingAttackDirection = float2.zero;
             HealthDelta = 0;
         }
     }

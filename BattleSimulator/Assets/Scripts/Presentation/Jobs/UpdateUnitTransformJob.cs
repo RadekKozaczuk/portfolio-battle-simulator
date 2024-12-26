@@ -19,13 +19,22 @@ namespace Presentation.Jobs
         [ReadOnly]
         public NativeArray<float2> Positions;
 
+        public NativeArray<float> DifferenceArray;
+
+        [ReadOnly]
+        public float Speed;
+
         public void Execute(int index, TransformAccess transform)
         {
-            // unit is dead todo: something is wrong with this value
-            //if (Mathf.Approximately(AttackingEnemyPos[index].x, float.MinValue))
-            //    return;
-
+            Vector3 lastPos = transform.position;
             float2 pos = Positions[index];
+            var currentPos = new Vector3(pos.x, 0, pos.y);
+            DifferenceArray[index] = 1;
+            //DifferenceArray[index] = (currentPos - lastPos).magnitude;// / Speed;
+
+            //if (index == 0)
+            //    Debug.Log($"index: {index} DifferenceArray[index]: {DifferenceArray[index]}");
+
             transform.position = new Vector3(pos.x, 0, pos.y);
         }
     }

@@ -14,7 +14,7 @@ namespace Core.Models
         public float2 Position;
 
         public const float Speed = 2.5f; // todo: move to config
-        public int Attack;             // todo: temporarily present - in the future will be in dedicated shared data
+        public int Attack;               // todo: temporarily present - in the future will be in dedicated shared data
 
         /// <summary>
         /// Indicates that the arrow has died due to reaching its maximum range this frame.

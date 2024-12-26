@@ -90,11 +90,12 @@ namespace GameLogic.Controllers
             // todo: to check if splitting the execution into very small amount of tasks (f.e. 2 or 4) would be beneficial 
 
             // todo: in the future use parallel //Parallel.For(0, 2, armyId =>
+            Span<UnitModel> units;
 
             // we go per army now (and then maybe per type)
             for (int armyId = 0; armyId < 2; armyId++)
             {
-                Span<UnitModel> units = _battleModel.GetUnits(armyId);
+                units = _battleModel.GetUnits(armyId);
 
                 for (int i = 0; i < units.Length; i++)
                 {
@@ -115,11 +116,21 @@ namespace GameLogic.Controllers
                     units[i].AttackCooldown -= GameLogicData.DeltaTime;
                 }
 
+                if (armyId == 0)
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
                     Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic);
                     action(armyId, unitType, _battleModel);
                 }
+            }
+
+            units = _battleModel.GetUnits();
+            for (int i = 0; i < units.Length; i++)
+            {
+                units[i].Health -= units[i].HealthDelta;
+
+                if (units[i].Health <= 0)
+                    Signals.UnitDied(i);
             }
         }
 
@@ -235,8 +246,9 @@ namespace GameLogic.Controllers
                 if (distance >= ProjectileModel.Speed)
                     continue;
 
-                enemyModel.LastIncomingAttackDirection = proPos - enemyPos;
+                float2 vec = proPos - enemyPos;
                 enemyModel.HealthDelta -= model.Attack - 6; // todo: attack should also be taken from the shared data
+                Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
                 //enemyModel.HealthDelta -= model.Attack - enemyArmy.SharedUnitData[enemyModel.UnitType].Defense; // todo: take from shared data
             }
         }

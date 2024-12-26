@@ -10,6 +10,7 @@ using Presentation.Config;
 using Presentation.Interfaces;
 using Presentation.Jobs;
 using Presentation.Views;
+using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Jobs;
@@ -54,7 +55,9 @@ namespace Presentation.Controllers
             // update units
             var job1 = new UpdateUnitTransformJob
             {
-                Positions = CoreData.UnitCurrPos
+                Positions = CoreData.UnitCurrPos,
+                DifferenceArray = PresentationData.MovementSpeedArray,
+                Speed = 10f // todo: take from Shared
             };
             JobHandle handle1 = job1.Schedule(PresentationData.UnitTransformAccess);
 
@@ -65,6 +68,13 @@ namespace Presentation.Controllers
 
             handle1.Complete();
             //handle2.Complete();
+
+            // movement animation
+            for (int i = 0; i < PresentationData.Units.Length; i++)
+            {
+                IUnit view = PresentationData.Units[i];
+                view.Move(PresentationData.MovementSpeedArray[i]);
+            }
         }
 
         internal static void InstantiateUnits(List<ArmyModel> armies)
@@ -83,6 +93,10 @@ namespace Presentation.Controllers
                     {
                         IUnit view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
                         view.Renderer.material.color = army.Color;
+
+                        // todo: match unit type name dynamically
+                        view.Name = $"{(unitType == 0 ? "Warrior" : "Archer")}_{unitId}";
+
                         transforms[unitId] = view.Transform;
                         PresentationData.Units[unitId] = view;
                         unitId++;
@@ -90,6 +104,7 @@ namespace Presentation.Controllers
                 }
 
             PresentationData.UnitTransformAccess = new TransformAccessArray(transforms);
+            PresentationData.MovementSpeedArray = new NativeArray<float>(totalUnitCount, Allocator.Persistent);
             _loadingFinished = true;
         }
 
@@ -100,6 +115,24 @@ namespace Presentation.Controllers
             Vector3 pos = camera.transform.position;
             Vector3 forwardTarget = (center - pos).normalized;
             camera.transform.forward += forwardTarget * 0.1f;
+        }
+
+        [React]
+        static void OnUnitAttacked(int unitId)
+        {
+            PresentationData.Units[unitId].Attack();
+        }
+
+        [React]
+        static void OnUnitDied(int unitId)
+        {
+            PresentationData.Units[unitId].Die();
+        }
+
+        [React]
+        static void OnUnitHit(int unitId, Vector3 attackDir)
+        {
+            PresentationData.Units[unitId].Hit();
         }
     }
 }

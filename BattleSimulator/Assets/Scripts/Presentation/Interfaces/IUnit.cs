@@ -5,10 +5,11 @@ namespace Presentation.Interfaces
 {
     internal interface IUnit
     {
+        internal string Name { get; set; }
         internal Transform Transform { get; }
         internal Renderer Renderer { get; }
 
-        internal void Move(Vector3 currentPos, Vector3 lastPos, float speed);
+        internal void Move(float move);
 
         internal void Attack();
 

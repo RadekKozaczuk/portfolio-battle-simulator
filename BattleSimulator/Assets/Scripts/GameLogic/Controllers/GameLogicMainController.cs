@@ -51,6 +51,10 @@ namespace GameLogic.Controllers
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
 
+        readonly ProjectileModel[] _projectileModels;
+
+        bool _finished;
+
         [Preserve]
         GameLogicMainController() { }
 
@@ -73,6 +77,21 @@ namespace GameLogic.Controllers
             if (GameStateService.CurrentState != GameState.Gameplay)
                 return;
 
+            if (_finished)
+                return;
+
+            if (_battleModel.OneOrZeroArmiesLeft(out int numLeft))
+            {
+                if (numLeft == 1)
+                    Debug.Log("=== ONE army left ===");
+                else if (numLeft == 0)
+                    Debug.Log("=== ZERO armies left ===");
+
+                // todo: show some popup
+                _finished = true;
+                return;
+            }
+
             GameLogicData.DeltaTime = Time.deltaTime;
             _updateArmyCenterController.CustomUpdate();
 
@@ -83,7 +102,7 @@ namespace GameLogic.Controllers
                 DeltaTime = GameLogicData.DeltaTime
             };
 
-            JobHandle handle = job.Schedule(CoreData.UnitCurrPos.Length, 32); // todo: investigate innerloop batch count
+            JobHandle handle = job.Schedule(CoreData.UnitCurrPos.Length, 32);
             handle.Complete();
 
             // todo: Parallel For appears to be slower than single-threaded execution
@@ -123,14 +142,53 @@ namespace GameLogic.Controllers
                 }
             }
 
+            // Apply damage
             units = _battleModel.GetUnits();
             for (int i = 0; i < units.Length; i++)
             {
-                units[i].Health -= units[i].HealthDelta;
-
+                // check if unit is alive at the moment
                 if (units[i].Health <= 0)
-                    Signals.UnitDied(i);
+                    continue;
+
+                units[i].Health += units[i].HealthDelta;
+                units[i].HealthDelta = 0;
+
+                // check if unit died after getting hit
+                if (units[i].Health > 0)
+                    continue;
+
+                _battleModel.UnitDied(units[i].ArmyId);
+                Signals.UnitDied(i);
             }
+        }
+
+        internal void AddProjectile(int armyId, float2 pos, float2 targetPos, int attack)
+        {
+            ref ProjectileModel projectile = ref _projectileModels[0];
+
+            // try to find a dto to recycle
+            int i = 1;
+            do
+            {
+                projectile = ref _projectileModels[i++];
+                if (!projectile.ReadyToBeRecycled)
+                    continue;
+
+                projectile.Recycle(armyId, pos, targetPos, attack);
+                return;
+            }
+            while (i < _projectileModels.Length);
+
+            // reallocate
+            var tempDtos = new ProjectileModel[_projectileModels.Length * 2];
+
+            // copy over
+            i = 0;
+            for (; i < _projectileModels.Length; i++)
+                tempDtos[i] = _projectileModels[i];
+
+            projectile = ref _projectileModels[++i]; // first empty slot
+            projectile.Recycle(armyId, pos, targetPos, attack);
         }
 
         /// <summary>
@@ -216,9 +274,9 @@ namespace GameLogic.Controllers
         /// Goes through all projectiles and calculate update their state.
         /// On top of it also update the damage to the hit enemy.
         /// </summary>
-        static void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
+        void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
         {
-            ref ProjectileModel model = ref CoreData.Projectiles[projectileId];
+            ref ProjectileModel model = ref _projectileModels[projectileId];
 
             if (model.ReadyToBeRecycled)
                 return;

@@ -72,8 +72,8 @@ namespace Presentation.Controllers
             // movement animation
             for (int i = 0; i < PresentationData.Units.Length; i++)
             {
-                IUnit view = PresentationData.Units[i];
-                view.Move(PresentationData.MovementSpeedArray[i]);
+                IUnit? view = PresentationData.Units[i];
+                view?.Move(PresentationData.MovementSpeedArray[i]);
             }
         }
 
@@ -118,21 +118,28 @@ namespace Presentation.Controllers
         }
 
         [React]
+        static void OnProjectileCreated(int unitId)
+        {
+            // todo: create a view
+        }
+
+        [React]
         static void OnUnitAttacked(int unitId)
         {
-            PresentationData.Units[unitId].Attack();
+            PresentationData.Units[unitId]!.Attack();
         }
 
         [React]
         static void OnUnitDied(int unitId)
         {
-            PresentationData.Units[unitId].Die();
+            PresentationData.Units[unitId]!.Die();
+            PresentationData.Units[unitId] = null;
         }
 
         [React]
         static void OnUnitHit(int unitId, Vector3 attackDir)
         {
-            PresentationData.Units[unitId].Hit();
+            PresentationData.Units[unitId]!.Hit(attackDir);
         }
     }
 }

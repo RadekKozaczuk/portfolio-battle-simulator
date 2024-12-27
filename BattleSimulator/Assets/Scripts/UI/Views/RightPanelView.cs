@@ -33,8 +33,8 @@ namespace UI.Views
             // todo: should be taken from the UI
             var fakeArmy = new List<ArmyModel>
             {
-                new (new[] {1 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.23f, 0.75f, 0.70f, 1f)),
-                new (new[] {1 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.16f, 0.75f, 0.26f, 255)),
+                new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.23f, 0.75f, 0.70f, 1f)),
+                new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.16f, 0.75f, 0.26f, 255)),
             };
 
             Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();

@@ -13,7 +13,7 @@ namespace Presentation.Interfaces
 
         internal void Attack();
 
-        internal void Hit();
+        internal void Hit(Vector3 hitDirection);
 
         internal void Die();
     }

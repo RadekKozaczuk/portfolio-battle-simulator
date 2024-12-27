@@ -1,7 +1,6 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Core.Models;
 using GameLogic.Interfaces;
 using UnityEngine.Assertions;
@@ -27,13 +26,25 @@ namespace GameLogic.Models
         readonly int _armyCount;
         readonly int _unitTypeCount;
 
+        /// <summary>
+        /// By army.
+        /// </summary>
+        readonly int[] _aliveUnitCount;
+
         internal BattleModel(List<ArmyModel> armies)
         {
-            int totalUnitCount = armies.Sum(army => army.UnitCount);
             _armyCount = armies.Count;
+            _aliveUnitCount = new int[_armyCount];
+
+            int totalUnitCount = 0;
+            for (int i = 0; i < armies.Count; i++)
+            {
+                ArmyModel army = armies[i];
+                _aliveUnitCount[i] = army.UnitCount;
+                totalUnitCount += army.UnitCount;
+            }
 
             _units = new UnitModel[totalUnitCount];
-
             _armyStarts = new int[_armyCount];
             _armyLengths = new int[_armyCount];
             _armyLengthSums = new int[_armyCount];
@@ -75,6 +86,18 @@ namespace GameLogic.Models
                         id++;
                     }
         }
+
+        bool IBattleModel.OneOrZeroArmiesLeft(out int numLeft)
+        {
+            numLeft = 0;
+            for (int i = 0; i < _armyCount; i++)
+                if (_aliveUnitCount[i] > 0)
+                    numLeft++;
+
+            return numLeft is 1 or 0;
+        }
+
+        void IBattleModel.UnitDied(int armyId) => _aliveUnitCount[armyId]--;
 
         ref UnitModel IBattleModel.GetUnit(int unitId) => ref _units[unitId];
 

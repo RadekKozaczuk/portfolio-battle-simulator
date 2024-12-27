@@ -26,7 +26,7 @@ namespace Core.Enums
     }
 
     /// <summary>
-    /// Strategy can be applied on a per-unit basis. Must be an enum as adding new without recompiling the code would not be easily achiveable.
+    /// Strategy can be applied on a per-unit basis. Must be an enum as adding new without recompiling the code would not be easily achievable.
     /// </summary>
     public enum Strategy
     {

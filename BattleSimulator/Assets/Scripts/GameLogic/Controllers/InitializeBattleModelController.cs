@@ -54,8 +54,6 @@ namespace GameLogic.Controllers
 
             for (int i = 0; i < CoreData.AttackingEnemyPos.Length; i++)
                 CoreData.AttackingEnemyPos[i] = new float2(float.MinValue, float.MinValue);
-
-            CoreData.Projectiles = new ProjectileModel[10]; // initially 10, does upscale when needed
         }
 
         void CreateUnitModels(int armyCount, IBattleModel battleModel, Bounds[] spawnZones)

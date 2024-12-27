@@ -20,7 +20,6 @@ namespace Core
 
         // initially size = 10, does upscale when needed
         public static NativeArray<float2> ProjectileCurrPos = new(10, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        public static ProjectileModel[] Projectiles;
         public static UnitStatsModel[] UnitStats;
     }
 }

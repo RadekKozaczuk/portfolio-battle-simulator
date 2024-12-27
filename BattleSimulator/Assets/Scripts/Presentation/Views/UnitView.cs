@@ -22,6 +22,8 @@ namespace Presentation.Views
         static readonly int _movementSpeed = Animator.StringToHash("MovementSpeed");
         static readonly int _attack = Animator.StringToHash("Attack");
 
+        Vector3 _lastAttackDirection;
+
         public void OnDeathAnimFinished() => Destroy(gameObject);
 
         void IUnit.Move(float movementSpeed)
@@ -34,8 +36,16 @@ namespace Presentation.Views
 
         void IUnit.Attack() => _animator.SetTrigger(_attack);
 
-        void IUnit.Hit() => _animator.SetTrigger(_hit);
+        void IUnit.Hit(Vector3 hitDirection)
+        {
+            _animator.SetTrigger(_hit);
+            _lastAttackDirection = hitDirection;
+        }
 
-        void IUnit.Die() => _animator.SetTrigger(_death);
+        void IUnit.Die()
+        {
+            _animator.SetTrigger(_death);
+            transform.forward = _lastAttackDirection;
+        }
     }
 }

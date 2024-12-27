@@ -1,41 +1,41 @@
-﻿using Unity.Mathematics;
+﻿using Core;
+using Unity.Mathematics;
+using UnityEngine;
 
-namespace Core.Models
+namespace GameLogic.Models
 {
-    public struct ProjectileModel
+    internal struct ProjectileModel
     {
-        public int ArmyId;
-        public float2 Target;
+        internal float2 Target;
 
         /// <summary>
         /// Normalized.
         /// </summary>
-        public float2 Direction;
-        public float2 Position;
+        internal float2 Direction;
+        internal float2 Position;
 
-        public const float Speed = 2.5f; // todo: move to config
-        public int Attack;               // todo: temporarily present - in the future will be in dedicated shared data
+        internal const float Speed = 2.5f; // todo: move to config
+        internal int Attack;             // todo: temporarily present - in the future will be in dedicated shared data
 
         /// <summary>
         /// Indicates that the arrow has died due to reaching its maximum range this frame.
         /// Goes back to false after that frame.
         /// </summary>
-        public bool OutOfRange;
+        internal bool OutOfRange;
 
         /// <summary>
         /// Does not have machine View object yet.
         /// Set to false after instantiation.
         /// </summary>
-        public bool NewlySpawned;
+        internal bool NewlySpawned;
 
         /// <summary>
         /// Means that the dto is long time dead and ready to be recycled.
         /// </summary>
-        public bool ReadyToBeRecycled;
+        internal bool ReadyToBeRecycled;
 
-        public void Recycle(int armyId, float2 position, float2 target, int attack)
+        internal void Recycle(int armyId, float2 position, float2 target, int attack)
         {
-            ArmyId = armyId;
             Position = position;
             Direction = math.normalize(target - position);
             Target = target;
@@ -43,6 +43,10 @@ namespace Core.Models
             OutOfRange = false;
             NewlySpawned = true;
             ReadyToBeRecycled = false;
+
+            Signals.ProjectileCreated(armyId,
+                                      new Vector3(position.x, 0, position.y),
+                                      new Vector3(target.x, 0, target.y));
         }
     }
 }

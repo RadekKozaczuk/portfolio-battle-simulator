@@ -7,6 +7,10 @@ namespace GameLogic.Interfaces
     {
         internal int ArmyCount { get; }
 
+        internal bool OneOrZeroArmiesLeft(out int numLeft);
+
+        internal void UnitDied(int armyId);
+
         internal ref UnitModel GetUnit(int unitId);
 
         internal Span<UnitModel> GetUnits();

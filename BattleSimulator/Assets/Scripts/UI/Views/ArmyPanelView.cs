@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System.Collections.Generic;
+using System.Linq;
 using Core.Enums;
 using Core.Models;
 using TMPro;
@@ -21,9 +22,8 @@ namespace UI.Views
                 var unitAmounts = new List<int>();
                 var strategies = new List<Strategy>();
 
-                foreach (UnitPanelView unit in _units)
+                foreach (UnitModel model in _units.Select(unit => unit.Model))
                 {
-                    UnitModel model = unit.Model;
                     unitAmounts.Add(model.Amount);
                     strategies.Add(model.Strategy);
                 }

@@ -7,7 +7,6 @@ using Core.Models;
 using Core.Services;
 using GameLogic.ViewModels;
 using Presentation.ViewModels;
-using UI.Data;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif

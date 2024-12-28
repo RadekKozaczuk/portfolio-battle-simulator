@@ -6,6 +6,7 @@ using Core.Models;
 using JetBrains.Annotations;
 using Presentation.Config;
 using Presentation.Controllers;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -22,7 +23,7 @@ namespace Presentation.ViewModels
         [Preserve]
         PresentationViewModel() { }
 
-        public void Initialize() { }
+        public void Initialize() => EditorApplication.quitting += Dispose;
 
         public static void CustomUpdate() => _presentationMainController.CustomUpdate();
 
@@ -55,5 +56,12 @@ namespace Presentation.ViewModels
         /// Positions are not yet set at this moment,
         /// </summary>
         public static void InstantiateUnits(List<ArmyModel> armies) => PresentationMainController.InstantiateUnits(armies);
+
+        public static void Dispose()
+        {
+            PresentationData.UnitTransformAccess.Dispose();
+            PresentationData.ProjectileTransformAccess.Dispose();
+            PresentationData.MovementSpeedArray.Dispose();
+        }
     }
 }

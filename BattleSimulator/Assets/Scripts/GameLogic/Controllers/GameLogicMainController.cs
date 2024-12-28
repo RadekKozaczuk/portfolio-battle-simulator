@@ -27,8 +27,6 @@ namespace GameLogic.Controllers
     /// you can put it into the main controller.<br/>
     /// 3) Reduces the size of the viewmodel. We could move all (late/fixed)update calls to viewmodel but over time it would lead to viewmodel
     /// being too long to comprehend. We also do not want to react on signals in viewmodels for the exact same reason.<br/>
-    /// For better code readability all controllers meant to interact with this controller should implement
-    /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
     class GameLogicMainController : IInitializable, ICustomUpdate
@@ -116,6 +114,10 @@ namespace GameLogic.Controllers
 
                 for (int i = 0; i < units.Length; i++)
                 {
+                    // skip dead ones
+                    if (units[i].Health <= 0)
+                        continue;
+
                     int unitId = units[i].Id;
                     Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unitId);
 
@@ -302,7 +304,7 @@ namespace GameLogic.Controllers
 
                 float2 vec = proPos - enemyPos;
                 enemyModel.HealthDelta -= model.Attack - 6; // todo: attack should also be taken from the shared data
-                Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
+                //Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
                 //enemyModel.HealthDelta -= model.Attack - enemyArmy.SharedUnitData[enemyModel.UnitType].Defense; // todo: take from shared data
             }
         }

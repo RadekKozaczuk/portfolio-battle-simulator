@@ -14,8 +14,6 @@ namespace UI.Controllers
     /// you can put it into the main controller.<br/>
     /// 3) Reduces the size of the viewmodel. We could move all (late/fixed)update calls to viewmodel but over time it would lead to viewmodel
     /// being too long to comprehend. We also do not want to react on signals in viewmodels for the exact same reason.<br/>
-    /// For better code readability all controllers meant to interact with this controller should implement
-    /// <see cref="ICustomLateUpdate" /> interface.<br/>
     /// </summary>
     [UsedImplicitly]
     class UIMainController : ICustomUpdate

@@ -45,9 +45,6 @@ namespace Core.Services
         /// </summary>
         public static void InvokeInitialization() => DependencyInjectionService<ScriptableObject>.InvokeInitialization();
 
-        // todo: are signals deterministic?
-        // todo: what if new signals are sent while Processor executes already scheduled signals?
-
         /// <summary>
         /// Process and execute all signals sent. Should be called only once per frame.
         /// </summary>

@@ -31,6 +31,10 @@ namespace GameLogic.Controllers
 
             foreach (UnitModel model in units)
             {
+                // skip dead ones
+                if (model.Health <= 0)
+                    continue;
+
                 ref UnitModel unit = ref battleModel.GetUnit(model.Id);
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
                 Logic(ref unit, ref enemy);
@@ -43,6 +47,10 @@ namespace GameLogic.Controllers
 
             foreach (UnitModel model in units)
             {
+                // skip dead ones
+                if (model.Health <= 0)
+                    continue;
+
                 ref UnitModel unit = ref battleModel.GetUnit(model.Id);
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 

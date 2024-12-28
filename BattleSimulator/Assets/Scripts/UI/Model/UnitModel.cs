@@ -1,19 +1,20 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using UI.Model;
+using System;
+using Core.Enums;
 using UnityEngine;
 
-namespace UI.Data
+namespace UI.Model
 {
-    [CreateAssetMenu(fileName = "ArmyData", menuName = "Data/UI/ArmyData")]
-    class ArmyData : ScriptableObject
+    [Serializable]
+    internal class UnitModel
     {
         [SerializeField]
         internal string Name;
 
         [SerializeField]
-        internal Color Color;
+        internal int Amount;
 
         [SerializeField]
-        internal UnitModel[] Units;
+        internal Strategy Strategy;
     }
 }

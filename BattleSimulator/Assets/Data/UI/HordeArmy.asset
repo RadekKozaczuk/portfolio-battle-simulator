@@ -10,8 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d775e157560446089de9b77da62cbe31, type: 3}
-  m_Name: Army1
+  m_Name: HordeArmy
   m_EditorClassIdentifier: 
-  _warriors: 100
-  _archers: 100
-  _strategy: 0
+  Name: Horde
+  Color: {r: 0.16, g: 0.75, b: 0.26, a: 1}
+  Units:
+  - Name: Warrior
+    Amount: 100
+    Strategy: 0
+  - Name: Archer
+    Amount: 100
+    Strategy: 0

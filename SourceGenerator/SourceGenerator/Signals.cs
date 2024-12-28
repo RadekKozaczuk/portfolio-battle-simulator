@@ -90,7 +90,7 @@ static class Signals
                         else if (j == 0)
                             signalQueuesSb.AppendLine($"            new(), // {methodName}");
                         else
-                            signalQueuesSb.AppendLine("            new(), ");
+                            signalQueuesSb.AppendLine("            new(),");
 
                         ParameterSyntax parameter = parameters[j];
                         string typeName = "";

@@ -13,4 +13,8 @@ MonoBehaviour:
   m_Name: UIConfig
   m_EditorClassIdentifier: 
   InputActionAsset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  ArmyPanelPrefab: {fileID: 6153432989469267973, guid: d2ae47e8b2053ee4b81707898f588745, type: 3}
   UnitPanelPrefab: {fileID: 2700344369449275414, guid: 57b956bb752e3c54b9fa1e1cee8a3bd4, type: 3}
+  Armies:
+  - {fileID: 11400000, guid: 7c3f723d132b8554fbe8a8dfa07b742e, type: 2}
+  - {fileID: 11400000, guid: c1ec198588d297145839211f5617bb8e, type: 2}

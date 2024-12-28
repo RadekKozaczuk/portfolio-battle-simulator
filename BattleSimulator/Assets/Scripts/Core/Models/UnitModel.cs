@@ -4,7 +4,7 @@
     {
         // todo: convert all these variables into one int
         // todo: id would take 10 bits max = 1024
-        // todo: unitType - 2 bits = 4 combanations
+        // todo: unitType - 2 bits = 4 combinations
         // todo: armyId - 2 bits = 4 comb
         // todo: health - 10 bits = 1024
         // todo: attacked - 1 bit

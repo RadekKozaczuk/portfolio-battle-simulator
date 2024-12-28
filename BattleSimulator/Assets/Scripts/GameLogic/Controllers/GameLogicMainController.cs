@@ -50,9 +50,7 @@ namespace GameLogic.Controllers
 
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
-
         readonly ProjectileModel[] _projectileModels;
-
         bool _finished;
 
         [Preserve]
@@ -282,7 +280,6 @@ namespace GameLogic.Controllers
                 return;
 
             model.Position += model.Direction * ProjectileModel.Speed;
-
             float2 proPos = CoreData.ProjectileCurrPos[projectileId];
 
             float distance = math.distance(proPos, model.Target);

@@ -7,6 +7,7 @@ using Core.Models;
 using Core.Services;
 using GameLogic.ViewModels;
 using Presentation.ViewModels;
+using UI.Data;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -30,16 +31,19 @@ namespace UI.Views
 
         static void StartAction()
         {
+            LeftPanelView leftPanel = MainMenuSceneReferenceHolder.LeftPanel;
+            List<ArmyModel> armies2 = leftPanel.Armies; // todo: does not work as of yet
+
             // todo: should be taken from the UI
-            var fakeArmy = new List<ArmyModel>
+            var armies = new List<ArmyModel>
             {
                 new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.23f, 0.75f, 0.70f, 1f)),
                 new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.16f, 0.75f, 0.26f, 255)),
             };
 
             Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();
-            GameLogicViewModel.InitializeBattle(fakeArmy, spawnZones);
-            PresentationViewModel.InstantiateUnits(fakeArmy);
+            GameLogicViewModel.InitializeBattle(armies, spawnZones);
+            PresentationViewModel.InstantiateUnits(armies);
             GameStateService.ChangeState(GameState.Gameplay);
         }
 

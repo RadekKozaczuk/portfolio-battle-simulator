@@ -16,7 +16,7 @@ namespace Core.Models
         public int UnitCount => _amounts.Sum();
         public int UnitTypeCount => _amounts.Length;
 
-        public readonly Color Color;
+        public Color Color;
 
         readonly int[] _amounts;
         readonly Strategy[] _strategies;

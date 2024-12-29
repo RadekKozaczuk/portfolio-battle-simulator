@@ -5,6 +5,7 @@ using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Scripting;
 #if DEVELOPMENT_BUILD
 using UnityEngine.Assertions;
@@ -64,51 +65,62 @@ namespace GameLogic.Controllers
 
                 Signals.UnitAttacked(model.Id);
                 unit.AttackCooldown = sharedData.AttackCooldown;
-                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos, 5);
+                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos, 5); // todo: attack value should be taken from config
             }
         }
 
         static void Defensive(int armyId, int unitType, IBattleModel battleModel)
         {
-            /*ref UnitModel model = ref army.Models[unitId];
+            Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
+
+            foreach (UnitModel model in units)
+            {
+                int unitId = model.Id;
+
+                ref UnitModel unit = ref battleModel.GetUnit(unitId);
+                ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 
 #if DEVELOPMENT_BUILD
-            Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
+                Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
 #endif
 
-            ref UnitSharedDataModel sharedData = ref army.SharedUnitData[model.UnitType];
-            SharedUnitBehaviors.MoveTowardsCenter(ref model, in enemyArmy.Center, in sharedData);
+                ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
 
-            ref UnitModel enemyModel = ref enemyArmy.Models[model.NearestEnemyId];
-            Vector3 vector = enemyModel.Position - model.Position;
-            float distance = Mathf.Sqrt(vector.x * vector.x + vector.z * vector.z);
+                float2 pos = CoreData.UnitCurrPos[unitId];
+                float2 enemyPos = CoreData.UnitCurrPos[enemy.Id];
+                float distance = math.distance(pos, enemyPos);
 
-            Vector3 toNearest = vector.normalized;
-            if (distance < sharedData.AttackRange)
-            {
-                if (model.AttackCooldown <= sharedData.CooldownDifference)
+                float2 normal = math.normalize(enemyPos - pos);
+
+                if (distance < sharedData.AttackRange)
                 {
-                    Vector3 flank = Quaternion.Euler(0, 90, 0) * toNearest;
-                    model.Position += -(toNearest + flank).normalized * sharedData.Speed;
+                    if (model.AttackCooldown <= sharedData.CooldownDifference)
+                    {
+                        quaternion ff = quaternion.Euler(0, 90, 0);
+                        /*var ww = ff * float3.zero;
+                        quaternion.RotateY()
+                        float2 flank = quaternion.Euler(0, 90, 0) * normal;
+                        CoreData.UnitCurrPos[unitId] += -(toNearest + flank).normalized * sharedData.Speed;*/
+                    }
                 }
+                else
+                {
+                    // if I can shoot but don't have anybody in range I go towards the nearest enemy
+                    if (model.AttackCooldown <= sharedData.CooldownDifference)
+                        CoreData.UnitCurrPos[unitId] += normal * sharedData.Speed;
+                }
+
+                // Attack Logic
+                if (model.AttackCooldown > 0)
+                    return;
+
+                if (distance > sharedData.AttackRange)
+                    return;
+
+                Signals.UnitAttacked(model.Id);
+                unit.AttackCooldown = sharedData.AttackCooldown;
+                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos, 5); // todo: attack value should be taken from config
             }
-            else
-            {
-                // if I can shoot but don't have anybody in range I go towards the nearest enemy
-                if (model.AttackCooldown <= sharedData.CooldownDifference)
-                    model.Position += toNearest * sharedData.Speed;
-            }
-
-            // Attack Logic
-            if (model.AttackCooldown > 0)
-                return;
-
-            if (distance > sharedData.AttackRange)
-                return;
-
-            model.Attacked = true;
-            model.AttackCooldown = sharedData.MaxAttackCooldown;
-            army.AddProjectileDto(model.Position, enemyModel.Position, sharedData.Attack);*/
         }
     }
 }

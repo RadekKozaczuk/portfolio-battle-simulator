@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Core.Services
 {
@@ -176,6 +178,9 @@ namespace Core.Services
                 if (Attribute.GetCustomAttributes(method, _reactAttribute).Length == 0)
                     continue;
 
+                Assert.IsTrue(method.IsStatic, $"React method {method.Name} is not static. React methods must be static.");
+                Assert.IsTrue(method.IsPrivate, $"React method {method.Name} is not private. React methods must be private.");
+
                 ParameterInfo[] parameters = method.GetParameters();
                 var types = new Type[parameters.Length];
                 for (int j = 0; j < parameters.Length; j++)
@@ -186,10 +191,15 @@ namespace Core.Services
                 string name = method.Name[2..];
                 Type delegateType = Expression.GetActionType(types);
 
-                int id = 0;
+                int id = int.MinValue;
                 for (int j = 0; j < _signalCount; j++)
                     if (_signalNames[j] == name)
+                    {
                         id = j;
+                        break;
+                    }
+
+                Assert.IsFalse(id == int.MinValue, "Could not find the signal.");
 
                 var del = Delegate.CreateDelegate(delegateType, method);
 

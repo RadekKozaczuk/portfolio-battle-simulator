@@ -11,9 +11,9 @@
 
         // todo: so health and healthDelta -> one int
         // todo: id, unit Type, armyId and attacked -> one int
-        public int Id;
-        public int UnitType;
-        public int ArmyId;
+        public readonly int Id;
+        public readonly int UnitType;
+        public readonly int ArmyId;
         public int Health;
 
         /// <summary>

@@ -7,9 +7,6 @@ using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Scripting;
-#if DEVELOPMENT_BUILD
-using UnityEngine.Assertions;
-#endif
 
 namespace GameLogic.Controllers
 {

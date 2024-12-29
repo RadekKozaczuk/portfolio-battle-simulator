@@ -8,7 +8,9 @@ namespace Core
     {
         void CenterOfArmiesChanged(Vector3 center);
 
-        void ProjectileCreated(int armyId, Vector3 position, Vector3 direction);
+        void ProjectileCreated(int id, int armyId, Vector3 position, Vector3 direction);
+
+        void ProjectileDestroyed(int id);
 
         void UnitAttacked(int unitId);
 

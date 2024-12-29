@@ -35,7 +35,7 @@ namespace Presentation.Controllers
 
         static bool _loadingFinished;
 
-        readonly ObjectPool<IProjectile> _projectilePool = new(
+        static readonly ObjectPool<IProjectile> _projectilePool = new(
             () => Object.Instantiate(_projectileConfig.ProjectilePrefab, PresentationSceneReferenceHolder.ProjectileContainer),
             view => view.GameObject.SetActive(true),
             view => view.GameObject.SetActive(false));
@@ -61,8 +61,8 @@ namespace Presentation.Controllers
 
             // todo: bugged - array not created yet
             // update projectiles
-            /*var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
-            JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);*/
+            //var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
+            //JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);
 
             handle1.Complete();
             //handle2.Complete();
@@ -116,9 +116,23 @@ namespace Presentation.Controllers
         }
 
         [React]
-        static void OnProjectileCreated(int unitId)
+        static void OnProjectileCreated(int id, int armyId, Vector3 position, Vector3 direction)
         {
-            // todo: create a view
+            IProjectile projectile = _projectilePool.Get();
+            projectile.Id = id;
+            projectile.Transform.position = position;
+            projectile.Transform.forward = direction;
+            //q.Renderer.material.color = // todo:  
+            PresentationData.Projectiles.Add(projectile);
+        }
+
+        [React]
+        static void OnProjectileDestroyed(int id)
+        {
+            int index = PresentationData.Projectiles.FindIndex(p => p.Id == id);
+            IProjectile view = PresentationData.Projectiles[index];
+            Object.Destroy(view.GameObject);
+            PresentationData.Projectiles.RemoveAt(index);
         }
 
         [React]

@@ -5,6 +5,7 @@ namespace Presentation.Interfaces
 {
     internal interface IProjectile
     {
+        internal int Id { get; set; }
         internal GameObject GameObject { get; }
         internal Transform Transform { get; }
         internal Renderer Renderer { get; }

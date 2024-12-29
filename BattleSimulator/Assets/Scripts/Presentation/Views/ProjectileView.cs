@@ -6,11 +6,14 @@ namespace Presentation.Views
 {
     class ProjectileView : MonoBehaviour, IProjectile
     {
+        int IProjectile.Id { get => _id; set => _id = value; }
         GameObject IProjectile.GameObject => gameObject;
         Transform IProjectile.Transform => transform;
         Renderer IProjectile.Renderer => _renderer;
 
         [SerializeField]
         Renderer _renderer;
+
+        int _id;
     }
 }

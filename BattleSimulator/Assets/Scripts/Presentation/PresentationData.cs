@@ -1,4 +1,5 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using System.Collections.Generic;
 using Presentation.Interfaces;
 using Unity.Collections;
 using UnityEngine.Jobs;
@@ -14,7 +15,7 @@ namespace Presentation
         /// Null when dead.
         /// </summary>
         internal static IUnit?[] Units;
-        internal static IProjectile[] Projectiles;
+        internal static List<IProjectile> Projectiles;
 
         internal static TransformAccessArray UnitTransformAccess;
         internal static TransformAccessArray ProjectileTransformAccess;

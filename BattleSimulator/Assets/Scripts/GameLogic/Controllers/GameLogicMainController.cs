@@ -48,7 +48,7 @@ namespace GameLogic.Controllers
 
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
-        readonly ProjectileModel[] _projectileModels;
+        readonly ProjectileModel[] _projectileModels = new ProjectileModel[10];
         bool _finished;
 
         [Preserve]
@@ -58,6 +58,9 @@ namespace GameLogic.Controllers
         {
             _unitControllers[0] = _warriorController;
             _unitControllers[1] = _archerController;
+
+            for (int i = 0; i < _projectileModels.Length; i++)
+                _projectileModels[i] = new ProjectileModel(i);
         }
 
         public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
@@ -171,10 +174,10 @@ namespace GameLogic.Controllers
             do
             {
                 projectile = ref _projectileModels[i++];
-                if (!projectile.ReadyToBeRecycled)
+                if (!projectile.ReadyToRecycle)
                     continue;
 
-                projectile.Recycle(armyId, pos, targetPos, attack);
+                projectile.Recycle(armyId, pos, targetPos);
                 return;
             }
             while (i < _projectileModels.Length);
@@ -188,7 +191,7 @@ namespace GameLogic.Controllers
                 tempDtos[i] = _projectileModels[i];
 
             projectile = ref _projectileModels[++i]; // first empty slot
-            projectile.Recycle(armyId, pos, targetPos, attack);
+            projectile.Recycle(armyId, pos, targetPos);
         }
 
         /// <summary>
@@ -278,14 +281,18 @@ namespace GameLogic.Controllers
         {
             ref ProjectileModel model = ref _projectileModels[projectileId];
 
-            if (model.ReadyToBeRecycled)
+            if (model.ReadyToRecycle)
                 return;
 
-            model.Position += model.Direction * ProjectileModel.Speed;
+            const float Speed = 2.5f;
+            float2 vectorTraveled = model.Direction * Speed * GameLogicData.DeltaTime;
+            float distanceTraveled = math.distance(float2.zero, vectorTraveled);
+
+            model.Position += vectorTraveled; // todo: take speed from shared data
             float2 proPos = CoreData.ProjectileCurrPos[projectileId];
 
             float distance = math.distance(proPos, model.Target);
-            if (distance < ProjectileModel.Speed)
+            if (distance <= distanceTraveled)
                 model.OutOfRange = true; // will be destroyed by the end of this frame
 
             for (int i = 0; i < enemies.Length; i++)
@@ -299,13 +306,12 @@ namespace GameLogic.Controllers
                 distance = math.distance(proPos, enemyPos);
 
                 // arrow cannot reach the target this frame
-                if (distance >= ProjectileModel.Speed)
+                if (distance >= 2.5f)
                     continue;
 
                 float2 vec = proPos - enemyPos;
-                enemyModel.HealthDelta -= model.Attack - 6; // todo: attack should also be taken from the shared data
-                //Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
-                //enemyModel.HealthDelta -= model.Attack - enemyArmy.SharedUnitData[enemyModel.UnitType].Defense; // todo: take from shared data
+                enemyModel.HealthDelta -= 12 - 6; // todo: projectile attack and enemy defense should be taken from the shared data
+                Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
             }
         }
     }

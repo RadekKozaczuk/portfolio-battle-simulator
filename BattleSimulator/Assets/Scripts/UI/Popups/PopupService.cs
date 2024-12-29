@@ -13,7 +13,7 @@ namespace UI.Popups
     /// Popup systems automatically calls SetActive(true) on each instantiated popup. It is a good practice to make popup
     /// prefabs inactive so that all the changes done to the prefab during <see cref="AbstractPopup.Initialize" /> call are not visible to the player.
     /// </summary>
-    static class PopupSystem
+    static class PopupService
     {
         // ReSharper disable once MemberCanBePrivate.Global
         internal static AbstractPopup? CurrentPopup => Popups.Count > 0 ? Popups[0] : null;
@@ -32,9 +32,9 @@ namespace UI.Popups
             Assert.IsFalse(CurrentPopup == null, "You cannot call CloseCurrentPopup if there is no active popup.");
 
             CurrentPopup!.Close();
-            GameObject popupGo = CurrentPopup.gameObject;
-            popupGo.SetActive(false);
-            Object.Destroy(popupGo);
+            GameObject popup = CurrentPopup.gameObject;
+            popup.SetActive(false);
+            Object.Destroy(popup);
             Popups.RemoveAt(0);
 
             if (_blockingPanel == null)
@@ -46,9 +46,9 @@ namespace UI.Popups
             }
             else
             {
-                GameObject panelGo = _blockingPanel.gameObject;
-                panelGo.SetActive(false);
-                Object.Destroy(panelGo);
+                GameObject panel = _blockingPanel.gameObject;
+                panel.SetActive(false);
+                Object.Destroy(panel);
                 _blockingPanel = null;
             }
         }

@@ -14,7 +14,8 @@ namespace Core.Enums
         /// <summary>
         /// Settings accessible from the main menu.
         /// </summary>
-        Settings
+        Settings,
+        Victory
     }
 
     public enum UnitType

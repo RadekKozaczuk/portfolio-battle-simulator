@@ -23,7 +23,7 @@ namespace UI.Services
             {
                 // if there is a popup - close it
                 // otherwise quit the game
-                if (PopupSystem.CurrentPopup == null)
+                if (PopupService.CurrentPopup == null)
                 {
                     PresentationViewModel.Dispose();
 
@@ -34,7 +34,7 @@ namespace UI.Services
 #endif
                 }
                 else
-                    PopupSystem.CloseCurrentPopup();
+                    PopupService.CloseCurrentPopup();
             };
         }
 

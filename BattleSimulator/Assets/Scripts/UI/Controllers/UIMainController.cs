@@ -1,6 +1,10 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using Core;
+using Core.Enums;
 using JetBrains.Annotations;
 using Core.Interfaces;
+using UI.Popups;
+using UI.Popups.Views;
 using UI.Services;
 using UnityEngine.Scripting;
 
@@ -32,5 +36,13 @@ namespace UI.Controllers
         }
 
         internal static void OnUISceneLoaded() => _uiSceneLoaded = true;
+
+        [React]
+        static void OnVictory(int armiesLeft)
+        {
+            PopupService.ShowPopup(PopupType.Victory);
+            var view = (VictoryPopup)PopupService.CurrentPopup!;
+            view.Initialize(armiesLeft);
+        }
     }
 }

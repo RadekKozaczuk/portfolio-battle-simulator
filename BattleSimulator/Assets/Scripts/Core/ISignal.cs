@@ -17,5 +17,7 @@ namespace Core
         void UnitDied(int unitId);
 
         void UnitHit(int unitId, Vector3 attackDir);
+
+        void Victory(int armiesLeft);
     }
 }

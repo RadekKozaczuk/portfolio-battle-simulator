@@ -81,13 +81,8 @@ namespace GameLogic.Controllers
 
             if (_battleModel.OneOrZeroArmiesLeft(out int numLeft))
             {
-                if (numLeft == 1)
-                    Debug.Log("=== ONE army left ===");
-                else if (numLeft == 0)
-                    Debug.Log("=== ZERO armies left ===");
-
-                // todo: show some popup
                 _finished = true;
+                Signals.Victory(numLeft);
                 return;
             }
 

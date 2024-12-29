@@ -36,6 +36,6 @@ namespace UI.Popups.Views
             _back.onClick.AddListener(Back);
         }
 
-        static void Back() => PopupSystem.CloseCurrentPopup();
+        static void Back() => PopupService.CloseCurrentPopup();
     }
 }

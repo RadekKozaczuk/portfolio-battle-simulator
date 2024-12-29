@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PopupPrefabs:
   - {fileID: 4106892965169384070, guid: 8989d0aa4a3bb644190a1392b1725b44, type: 3}
+  - {fileID: 5402157543878906331, guid: 222b8b3a98f16c540b122e36eb5b4708, type: 3}
   BlockingPanelPrefab: {fileID: 4949133293988579618, guid: 28a5d583bf7f1d74195181a7b7c45f7e, type: 3}

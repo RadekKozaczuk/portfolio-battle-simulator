@@ -38,8 +38,8 @@ namespace UI.ViewModels
             _uiConfig.InputActionAsset.FindActionMap(UIConstants.PlayerActionMap).Enable();
 
             // this happens only when we start a client game starts
-            if (PopupSystem.CurrentPopup != null)
-                PopupSystem.CloseCurrentPopup();
+            if (PopupService.CurrentPopup != null)
+                PopupService.CloseCurrentPopup();
         }
 
         public static void GameplayOnExit() =>

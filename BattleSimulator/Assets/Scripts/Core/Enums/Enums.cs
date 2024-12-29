@@ -9,8 +9,6 @@ namespace Core.Enums
         Gameplay
     }
 
-    public enum StateTransitionParameter { }
-
     public enum PopupType
     {
         /// <summary>

@@ -26,7 +26,7 @@ namespace Boot
         EventSystem _eventSystem;
 
         static bool _isCoreSceneLoaded;
-        static StateService<GameState, StateTransitionParameter> _stateMachine;
+        static StateService<GameState> _stateMachine;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // readonly fields are initialized only at the start and the null-forgiving operator is only a hint for the compiler.
@@ -64,8 +64,6 @@ namespace Boot
 
             GameStateService.OnChangeState += _stateMachine.ChangeState;
             GameStateService.OnGetCurrentGameState += _stateMachine.GetCurrentState;
-            GameStateService.OnEndFrameSignal += _stateMachine.EndFrameSignal;
-            GameStateService.OnGetTransitionParameter += _stateMachine.GetTransitionParameter;
 
             GameStateService.ChangeState(GameState.MainMenu);
 
@@ -92,11 +90,9 @@ namespace Boot
 
                 ArchitectureService.ExecuteSentSignals();
             }
-
-            GameStateService.SendEndFrameSignal();
         }
 
-        static StateService<GameState, StateTransitionParameter> CreateStateMachine() =>
+        static StateService<GameState> CreateStateMachine() =>
             new(new List<(
                     GameState from,
                     GameState to,

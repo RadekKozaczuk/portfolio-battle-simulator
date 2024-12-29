@@ -8,9 +8,8 @@ using UnityEngine.SceneManagement;
 
 namespace Core.Services
 {
-    public class StateService<TState, TTransitionParameter> : AbstractStateService<TState, TTransitionParameter>
+    public class StateService<TState> : AbstractStateService<TState>
         where TState : struct, Enum
-        where TTransitionParameter : struct, Enum
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>
@@ -19,8 +18,6 @@ namespace Core.Services
         /// </summary>
         bool _transitioning;
         readonly bool _logRequestedStateChange;
-        int _lastEndFrameSignal = -1;
-        readonly Dictionary<TTransitionParameter, (Type type, bool isDirty)> _parameterSafetyChecks = new();
 #endif
 
         /// <summary>
@@ -56,48 +53,18 @@ namespace Core.Services
         }
 
         /// <summary>
-        /// Add transition parameter with a default value (null for reference types, default for value types).
-        /// </summary>
-        public void AddTransitionParameter(TTransitionParameter key, Type type)
-        {
-            _parameters.Add(key, type.IsValueType ? Activator.CreateInstance(type) : null);
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            _parameterSafetyChecks.Add(key, (type, false));
-#endif
-        }
-
-        public object? GetTransitionParameter(TTransitionParameter key)
-        {
-            if (_parameters.TryGetValue(key, out object? value))
-                return value;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            throw new Exception("No transition parameter for the given key. Please use AddTransitionParameter to add parameters.");
-#endif
-
-#pragma warning disable CS0162 // Unreachable code detected
-            // ReSharper disable once HeuristicUnreachableCode
-            return null;
-#pragma warning restore CS0162 // Unreachable code detected
-        }
-
-        /// <summary>
         /// Actual state change may be delayed in time. Consecutive calls are not allowed.
         /// Additional scenes, whether to-load or to-unload, must not collide with the scenes defined in the constructor.
         /// </summary>
         /// <param name="state">State we transition to</param>
         /// <param name="additionalScenesToLoad">Additional scenes (not defined in the transition) to load during</param>
         /// <param name="additionalScenesToUnload"></param>
-        /// <param name="parameters"></param>
         /// <param name="scenesToSynchronize">Scenes listed here will have their root objects disabled immediately after scene load
         /// (so right after Awake call) and then enabled again on state OnEntry.</param>
         /// <exception cref="Exception"></exception>
         public async void ChangeState(TState state, int[]? additionalScenesToLoad = null,
-            int[]? additionalScenesToUnload = null, (TTransitionParameter key, object value)[]? parameters = null,
-            int[]? scenesToSynchronize = null)
+            int[]? additionalScenesToUnload = null, int[]? scenesToSynchronize = null)
         {
-            UpdateParameters(parameters);
             List<TransitionDto> transitions = _transitions.FindAll(t => Equal(t.From, _currentState) && Equal(t.To, state));
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -162,60 +129,6 @@ namespace Core.Services
 
             _transitioning = false;
 #endif
-
-            _shouldDefaultParameters = true;
-        }
-
-        /// <summary>
-        /// Should be called at the end of the frame.
-        /// Should not be called more than once per frame.
-        /// </summary>
-        public new void EndFrameSignal()
-        {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Assert.IsFalse(_lastEndFrameSignal == Time.frameCount, "EndFrameSignal should not be called more than once per frame.");
-            _lastEndFrameSignal = Time.frameCount;
-
-            // reset flags
-            if (_shouldDefaultParameters)
-                for (int i = 0; i < _parameterSafetyChecks.Count; i++)
-                {
-                    KeyValuePair<TTransitionParameter, (Type type, bool isDirty)> element = _parameterSafetyChecks.ElementAt(i);
-                    _parameterSafetyChecks[element.Key] = (element.Value.type, false);
-                }
-#endif
-
-            base.EndFrameSignal();
-        }
-
-        void UpdateParameters(IReadOnlyList<(TTransitionParameter key, object value)>? parameters)
-        {
-            if (parameters == null)
-                return;
-
-            // mark parameters as dirty && check type
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            foreach ((TTransitionParameter key, object) _ in parameters)
-            {
-                (TTransitionParameter key, object value) = _;
-                if (_parameterSafetyChecks.TryGetValue(key, out (Type type, bool isDirty) check))
-                {
-                    Assert.IsFalse(check.isDirty,
-                                   "Transition parameters cannot be changed more than once in a single transition. "
-                                   + "Transition may last more than one frame.");
-                    Assert.IsTrue(check.type == value.GetType(),
-                                  "Transition parameter type must much the type provided to the machine when AddTransitionParameter was called.");
-                    _parameterSafetyChecks[key] = (check.type, true);
-                    continue;
-                }
-
-                Assert.IsTrue(_parameterSafetyChecks.TryGetValue(key, out (Type type, bool isDirty) _),
-                              "No transition parameter for the given key. Please use AddTransitionParameter to add parameters.");
-            }
-#endif
-
-            foreach ((TTransitionParameter key, object value) in parameters)
-                _parameters[key] = value;
         }
 
         /// <summary>

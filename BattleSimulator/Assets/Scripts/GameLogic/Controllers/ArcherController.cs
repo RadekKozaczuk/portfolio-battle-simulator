@@ -5,11 +5,8 @@ using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
-using UnityEngine;
-using UnityEngine.Scripting;
-#if DEVELOPMENT_BUILD
 using UnityEngine.Assertions;
-#endif
+using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
 {
@@ -34,14 +31,17 @@ namespace GameLogic.Controllers
                 int unitId = model.Id;
 
                 ref UnitModel unit = ref battleModel.GetUnit(unitId);
+
+                // skip dead ones
+                if (model.Health <= 0)
+                    continue;
+
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 
-#if DEVELOPMENT_BUILD
                 Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
-#endif
 
                 if (unit.NearestEnemyId == int.MinValue)
-                    return;
+                    continue;
 
                 ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
 
@@ -52,20 +52,20 @@ namespace GameLogic.Controllers
                 if (model.AttackCooldown <= sharedData.CooldownDifference)
                 {
                     float2 normal = math.normalize(enemyPos - pos);
-                    CoreData.UnitCurrPos[unitId] += normal * sharedData.Speed;
+                    CoreData.UnitCurrPos[unitId] += normal * sharedData.Speed * GameLogicData.DeltaTime;
                 }
 
                 // Attack Logic
                 if (model.AttackCooldown > 0)
-                    return;
+                    continue;
 
                 float distance = math.distance(pos, enemyPos);
                 if (distance > sharedData.AttackRange)
-                    return;
+                    continue;
 
                 Signals.UnitAttacked(model.Id);
                 unit.AttackCooldown = sharedData.AttackCooldown;
-                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos, 5); // todo: attack value should be taken from config
+                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos);
             }
         }
 
@@ -78,11 +78,14 @@ namespace GameLogic.Controllers
                 int unitId = model.Id;
 
                 ref UnitModel unit = ref battleModel.GetUnit(unitId);
+
+                // skip dead ones
+                if (unit.Health <= 0)
+                    continue;
+
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 
-#if DEVELOPMENT_BUILD
                 Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
-#endif
 
                 ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
 
@@ -97,7 +100,7 @@ namespace GameLogic.Controllers
                     if (model.AttackCooldown <= sharedData.CooldownDifference)
                     {
                         quaternion ff = quaternion.Euler(0, 90, 0);
-                        /*var ww = ff * float3.zero;
+                        /*float3 ww = ff * float3.zero;
                         quaternion.RotateY()
                         float2 flank = quaternion.Euler(0, 90, 0) * normal;
                         CoreData.UnitCurrPos[unitId] += -(toNearest + flank).normalized * sharedData.Speed;*/
@@ -119,7 +122,7 @@ namespace GameLogic.Controllers
 
                 Signals.UnitAttacked(model.Id);
                 unit.AttackCooldown = sharedData.AttackCooldown;
-                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos, 5); // todo: attack value should be taken from config
+                _gameLogicMainController.AddProjectile(armyId, pos, enemyPos);
             }
         }
     }

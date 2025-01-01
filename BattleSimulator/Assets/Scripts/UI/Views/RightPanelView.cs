@@ -31,16 +31,16 @@ namespace UI.Views
         static void StartAction()
         {
             LeftPanelView leftPanel = MainMenuSceneReferenceHolder.LeftPanel;
-            //List<ArmyModel> armies = leftPanel.Armies; // todo: does not work as of yet
+            /*List<ArmyModel> armies = leftPanel.Armies; // todo: does not work as of yet
 
-            //armies[0].Color = new Color(0.23f, 0.75f, 0.70f, 1f);
-            //armies[1].Color = new Color(0.16f, 0.75f, 0.26f, 255);
+            armies[0].Color = new Color(0.23f, 0.75f, 0.70f, 1f);
+            armies[1].Color = new Color(0.16f, 0.75f, 0.26f, 255);*/
 
             // todo: should be taken from the UI
             var armies = new List<ArmyModel>
             {
-                new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.23f, 0.75f, 0.70f, 1f)),
-                new (new[] {100 , 0}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.16f, 0.75f, 0.26f, 255)),
+                new (new[] {5 , 5}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.23f, 0.75f, 0.70f, 1f)),
+                new (new[] {5 , 5}, new [] {Strategy.Basic, Strategy.Basic}, new Color(0.16f, 0.75f, 0.26f, 255)),
             };
 
             Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();

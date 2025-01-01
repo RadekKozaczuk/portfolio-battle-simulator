@@ -18,8 +18,6 @@ namespace Core
         /// </summary>
         public static NativeArray<float2> AttackingEnemyPos;
 
-        // initially size = 10, does upscale when needed
-        public static NativeArray<float2> ProjectileCurrPos = new(10, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         public static UnitStatsModel[] UnitStats;
     }
 }

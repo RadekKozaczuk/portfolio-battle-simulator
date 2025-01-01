@@ -13,6 +13,9 @@
         public readonly float Speed;
         public readonly float DistanceToEnemyCenterThreshold;
 
+        /// <summary>
+        /// Equals <see cref="AttackCooldown"/> - postAttackDelay.
+        /// </summary>
         public readonly float CooldownDifference;
 
         public UnitStatsModel(int health, int defense, int attack, float attackRange,
@@ -26,7 +29,7 @@
             Speed = speed;
             DistanceToEnemyCenterThreshold = distanceToEnemyCenterThreshold;
 
-            CooldownDifference = 45f;
+            CooldownDifference = attackCooldown - postAttackDelay;
         }
     }
 }

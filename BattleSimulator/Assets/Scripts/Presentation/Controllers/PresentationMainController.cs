@@ -40,6 +40,13 @@ namespace Presentation.Controllers
             view => view.GameObject.SetActive(true),
             view => view.GameObject.SetActive(false));
 
+        static readonly List<IProjectile> _projectiles = new();
+
+        /// <summary>
+        /// Null when dead.
+        /// </summary>
+        static IUnit?[] _units;
+
         [Preserve]
         PresentationMainController() { }
 
@@ -59,18 +66,12 @@ namespace Presentation.Controllers
             };
             JobHandle handle1 = job1.Schedule(PresentationData.UnitTransformAccess);
 
-            // todo: bugged - array not created yet
-            // update projectiles
-            //var job2 = new UpdateProjectileTransformJob {Positions = CoreData.ProjectileCurrPos};
-            //JobHandle handle2 = job2.Schedule(PresentationData.ProjectileTransformAccess);
-
             handle1.Complete();
-            //handle2.Complete();
 
             // movement animation
-            for (int i = 0; i < PresentationData.Units.Length; i++)
+            for (int i = 0; i < _units.Length; i++)
             {
-                IUnit? view = PresentationData.Units[i];
+                IUnit? view = _units[i];
                 view?.Move(PresentationData.MovementSpeedArray[i]);
             }
         }
@@ -79,7 +80,7 @@ namespace Presentation.Controllers
         {
             int totalUnitCount = armies.Sum(army => army.UnitCount);
 
-            PresentationData.Units = new IUnit[totalUnitCount];
+            _units = new IUnit[totalUnitCount];
             var transforms = new Transform[totalUnitCount];
 
             int unitId = 0;
@@ -96,7 +97,7 @@ namespace Presentation.Controllers
                         view.Name = $"{(unitType == 0 ? "Warrior" : "Archer")}_{unitId}";
 
                         transforms[unitId] = view.Transform;
-                        PresentationData.Units[unitId] = view;
+                        _units[unitId] = view;
                         unitId++;
                     }
                 }
@@ -123,35 +124,43 @@ namespace Presentation.Controllers
             projectile.Transform.position = position;
             projectile.Transform.forward = direction;
             //q.Renderer.material.color = // todo:  
-            PresentationData.Projectiles.Add(projectile);
+            _projectiles.Add(projectile);
         }
 
         [React]
         static void OnProjectileDestroyed(int id)
         {
-            int index = PresentationData.Projectiles.FindIndex(p => p.Id == id);
-            IProjectile view = PresentationData.Projectiles[index];
+            int index = _projectiles.FindIndex(p => p.Id == id);
+            IProjectile view = _projectiles[index];
             Object.Destroy(view.GameObject);
-            PresentationData.Projectiles.RemoveAt(index);
+            _projectiles.RemoveAt(index);
+        }
+
+        [React]
+        static void OnProjectilePositionChanged(int id, Vector3 position)
+        {
+            int index = _projectiles.FindIndex(p => p.Id == id);
+            IProjectile view = _projectiles[index];
+            view.Transform.position = position;
         }
 
         [React]
         static void OnUnitAttacked(int unitId)
         {
-            PresentationData.Units[unitId]!.Attack();
+            _units[unitId]!.Attack();
         }
 
         [React]
         static void OnUnitDied(int unitId)
         {
-            PresentationData.Units[unitId]!.Die();
-            PresentationData.Units[unitId] = null;
+            _units[unitId]!.Die();
+            _units[unitId] = null;
         }
 
         [React]
         static void OnUnitHit(int unitId, Vector3 attackDir)
         {
-            PresentationData.Units[unitId]!.Hit(attackDir);
+            _units[unitId]!.Hit(attackDir);
         }
     }
 }

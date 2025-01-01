@@ -60,7 +60,6 @@ namespace Presentation.ViewModels
         public static void Dispose()
         {
             PresentationData.UnitTransformAccess.Dispose();
-            PresentationData.ProjectileTransformAccess.Dispose();
             PresentationData.MovementSpeedArray.Dispose();
         }
     }

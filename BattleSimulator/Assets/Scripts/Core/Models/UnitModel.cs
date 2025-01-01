@@ -34,16 +34,5 @@
             NearestEnemyId = int.MinValue;
             HealthDelta = 0;
         }
-
-        public UnitModel(int id, int unitType, int armyId, int health)
-        {
-            Id = id;
-            UnitType = unitType;
-            ArmyId = armyId;
-            Health = health;
-            AttackCooldown = 0f;
-            NearestEnemyId = int.MinValue;
-            HealthDelta = 0;
-        }
     }
 }

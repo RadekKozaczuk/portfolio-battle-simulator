@@ -12,6 +12,8 @@ namespace Core
 
         void ProjectileDestroyed(int id);
 
+        void ProjectilePositionChanged(int id, Vector3 position);
+
         void UnitAttacked(int unitId);
 
         void UnitDied(int unitId);

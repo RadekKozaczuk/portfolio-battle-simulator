@@ -70,7 +70,7 @@ namespace GameLogic.Models
                 for (int unitTypeId = 0; unitTypeId < _unitTypeCount; unitTypeId++)
                 {
                     int index = armyId * _unitTypeCount + unitTypeId;
-                    _unitTypeStarts[index] = totalSum; // todo: this does not count good
+                    _unitTypeStarts[index] = totalSum;
                     sum = armies[armyId].GetUnitCount(unitTypeId);
                     _unitTypeLengths[index] = sum;
                     totalSum += sum;

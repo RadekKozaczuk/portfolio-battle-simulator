@@ -6,20 +6,25 @@ namespace GameLogic.Models
 {
     internal struct ProjectileModel
     {
+        internal float2 Position
+        {
+            get => _position;
+            set
+            {
+                _position = value;
+                Signals.ProjectilePositionChanged(Id, new Vector3(_position.x, 0f, _position.y));
+            }
+        }
+        float2 _position;
+
         internal readonly int Id;
+        internal int ArmyId;
         internal float2 Target;
 
         /// <summary>
         /// Normalized.
         /// </summary>
         internal float2 Direction;
-        internal float2 Position;
-
-        /// <summary>
-        /// Indicates that the arrow has died due to reaching its maximum range this frame.
-        /// Goes back to false after that frame.
-        /// </summary>
-        internal bool OutOfRange;
 
         /// <summary>
         /// The projectile is long time dead and ready to be recycled.
@@ -29,25 +34,25 @@ namespace GameLogic.Models
         internal ProjectileModel(int id)
         {
             Id = id;
-            Position = float2.zero;
+            ArmyId = int.MinValue;
+            _position = float2.zero;
             Direction = float2.zero;
             Target = float2.zero;
-            OutOfRange = false;
             ReadyToRecycle = true;
         }
 
         internal void Recycle(int armyId, float2 position, float2 target)
         {
-            Position = position;
+            ArmyId = armyId;
+            _position = position;
             Direction = math.normalize(target - position);
             Target = target;
-            OutOfRange = false;
             ReadyToRecycle = false;
 
             Signals.ProjectileCreated(Id,
                                       armyId,
-                                      new Vector3(position.x, 0, position.y),
-                                      new Vector3(target.x, 0, target.y));
+                                      new Vector3(_position.x, 0, _position.y),
+                                      new Vector3(Direction.x, 0, Direction.y));
         }
     }
 }

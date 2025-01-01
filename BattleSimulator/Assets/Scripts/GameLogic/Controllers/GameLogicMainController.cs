@@ -48,7 +48,7 @@ namespace GameLogic.Controllers
 
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
-        readonly ProjectileModel[] _projectileModels = new ProjectileModel[10];
+        readonly ProjectileModel[] _projectiles = new ProjectileModel[10];
         bool _finished;
 
         [Preserve]
@@ -59,8 +59,8 @@ namespace GameLogic.Controllers
             _unitControllers[0] = _warriorController;
             _unitControllers[1] = _archerController;
 
-            for (int i = 0; i < _projectileModels.Length; i++)
-                _projectileModels[i] = new ProjectileModel(i);
+            for (int i = 0; i < _projectiles.Length; i++)
+                _projectiles[i] = new ProjectileModel(i);
         }
 
         public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
@@ -140,6 +140,8 @@ namespace GameLogic.Controllers
                 }
             }
 
+            UpdateProjectiles();
+
             // Apply damage
             units = _battleModel.GetUnits();
             for (int i = 0; i < units.Length; i++)
@@ -160,32 +162,33 @@ namespace GameLogic.Controllers
             }
         }
 
-        internal void AddProjectile(int armyId, float2 pos, float2 targetPos, int attack)
+        internal void AddProjectile(int armyId, float2 pos, float2 targetPos)
         {
-            ref ProjectileModel projectile = ref _projectileModels[0];
+            ref ProjectileModel projectile = ref _projectiles[0];
 
             // try to find a dto to recycle
-            int i = 1;
+            int i = 0;
             do
             {
-                projectile = ref _projectileModels[i++];
+                projectile = ref _projectiles[i++];
+
                 if (!projectile.ReadyToRecycle)
                     continue;
 
                 projectile.Recycle(armyId, pos, targetPos);
                 return;
             }
-            while (i < _projectileModels.Length);
+            while (i < _projectiles.Length);
 
             // reallocate
-            var tempDtos = new ProjectileModel[_projectileModels.Length * 2];
+            var tempDtos = new ProjectileModel[_projectiles.Length * 2];
 
             // copy over
             i = 0;
-            for (; i < _projectileModels.Length; i++)
-                tempDtos[i] = _projectileModels[i];
+            for (; i < _projectiles.Length; i++)
+                tempDtos[i] = _projectiles[i];
 
-            projectile = ref _projectileModels[++i]; // first empty slot
+            projectile = ref _projectiles[++i]; // first empty slot
             projectile.Recycle(armyId, pos, targetPos);
         }
 
@@ -272,41 +275,56 @@ namespace GameLogic.Controllers
         /// Goes through all projectiles and calculate update their state.
         /// On top of it also update the damage to the hit enemy.
         /// </summary>
-        void UpdateProjectile(int projectileId, Span<UnitModel> enemies)
+        void UpdateProjectiles()
         {
-            ref ProjectileModel model = ref _projectileModels[projectileId];
-
-            if (model.ReadyToRecycle)
-                return;
-
-            const float Speed = 2.5f;
-            float2 vectorTraveled = model.Direction * Speed * GameLogicData.DeltaTime;
-            float distanceTraveled = math.distance(float2.zero, vectorTraveled);
-
-            model.Position += vectorTraveled; // todo: take speed from shared data
-            float2 proPos = CoreData.ProjectileCurrPos[projectileId];
-
-            float distance = math.distance(proPos, model.Target);
-            if (distance <= distanceTraveled)
-                model.OutOfRange = true; // will be destroyed by the end of this frame
-
-            for (int i = 0; i < enemies.Length; i++)
+            for (int i = 0; i < _projectiles.Length; i++)
             {
-                ref UnitModel enemyModel = ref enemies[i];
+                ref ProjectileModel projectile = ref _projectiles[i];
 
-                if (enemyModel.Health <= 0)
-                    continue;
+                if (projectile.ReadyToRecycle)
+                    return;
 
-                float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
-                distance = math.distance(proPos, enemyPos);
+                const float Speed = 50f; // todo: should be taken from shared data
+                float2 vectorTraveled = projectile.Direction * Speed * GameLogicData.DeltaTime;
+                float distanceTraveled = math.distance(float2.zero, vectorTraveled);
 
-                // arrow cannot reach the target this frame
-                if (distance >= 2.5f)
-                    continue;
+                projectile.Position += vectorTraveled;
+                float2 pos = projectile.Position;
 
-                float2 vec = proPos - enemyPos;
-                enemyModel.HealthDelta -= 12 - 6; // todo: projectile attack and enemy defense should be taken from the shared data
-                Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
+                float distance = math.distance(pos, projectile.Target);
+                if (distance <= distanceTraveled) // projectile reached the maximum range
+                {
+                    projectile.ReadyToRecycle = true;
+                    Signals.ProjectileDestroyed(projectile.Id);
+                }
+
+                Memory<UnitModel>[] memories = _battleModel.GetEnemies(projectile.ArmyId);
+
+                foreach (Memory<UnitModel> m in memories)
+                {
+                    Span<UnitModel> enemies = m.Span;
+                    for (int j = 0; j < enemies.Length; j++)
+                    {
+                        ref UnitModel enemyModel = ref enemies[j];
+
+                        if (enemyModel.Health <= 0)
+                            continue;
+
+                        float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
+                        distance = math.distance(pos, enemyPos);
+
+                        // arrow cannot reach the target this frame
+                        if (distance >= 2.5f)
+                            continue;
+
+                        float2 vec = pos - enemyPos;
+                        enemyModel.HealthDelta -= 12 - 6; // todo: projectile attack and enemy defense should be taken from the shared data
+                        projectile.ReadyToRecycle = true;
+
+                        Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
+                        Signals.ProjectileDestroyed(projectile.Id);
+                    }
+                }
             }
         }
     }

@@ -33,7 +33,7 @@ namespace UI.Views
         internal void Initialize(UnitModel unit)
         {
             _title.text = unit.Name;
-            _amount.text = unit.Amount.ToString();
+            _slider.value = unit.Amount;
         }
 
         void SliderAction(float value)

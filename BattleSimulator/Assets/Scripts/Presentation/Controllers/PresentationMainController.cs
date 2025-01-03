@@ -13,8 +13,10 @@ using Presentation.Views;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Jobs;
 using UnityEngine.Pool;
+using Object = UnityEngine.Object;
 
 namespace Presentation.Controllers
 {
@@ -38,7 +40,11 @@ namespace Presentation.Controllers
         static readonly ObjectPool<IProjectile> _projectilePool = new(
             () => Object.Instantiate(_projectileConfig.ProjectilePrefab, PresentationSceneReferenceHolder.ProjectileContainer),
             view => view.GameObject.SetActive(true),
-            view => view.GameObject.SetActive(false));
+            view =>
+            {
+                view.Id = int.MinValue;
+                view.GameObject.SetActive(false);
+            });
 
         static readonly List<IProjectile> _projectiles = new();
 
@@ -119,11 +125,14 @@ namespace Presentation.Controllers
         [React]
         static void OnProjectileCreated(int id, int armyId, Vector3 position, Vector3 direction)
         {
+            int index = _projectiles.FindIndex(p => p.Id == id);
+            Assert.IsTrue(index == -1, "Id cannot overlap");
+
             IProjectile projectile = _projectilePool.Get();
             projectile.Id = id;
             projectile.Transform.position = position;
             projectile.Transform.forward = direction;
-            //q.Renderer.material.color = // todo:  
+            projectile.Renderer.material.color = new Color(1, 0, 0); // todo: should be the same as the army  
             _projectiles.Add(projectile);
         }
 
@@ -131,8 +140,9 @@ namespace Presentation.Controllers
         static void OnProjectileDestroyed(int id)
         {
             int index = _projectiles.FindIndex(p => p.Id == id);
+
             IProjectile view = _projectiles[index];
-            Object.Destroy(view.GameObject);
+            _projectilePool.Release(view);
             _projectiles.RemoveAt(index);
         }
 

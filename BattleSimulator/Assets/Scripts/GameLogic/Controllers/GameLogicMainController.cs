@@ -48,7 +48,7 @@ namespace GameLogic.Controllers
 
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
-        readonly ProjectileModel[] _projectiles = new ProjectileModel[10];
+        ProjectileModel[] _projectiles = new ProjectileModel[2];
         bool _finished;
 
         [Preserve]
@@ -58,9 +58,6 @@ namespace GameLogic.Controllers
         {
             _unitControllers[0] = _warriorController;
             _unitControllers[1] = _archerController;
-
-            for (int i = 0; i < _projectiles.Length; i++)
-                _projectiles[i] = new ProjectileModel(i);
         }
 
         public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
@@ -172,7 +169,7 @@ namespace GameLogic.Controllers
             {
                 projectile = ref _projectiles[i++];
 
-                if (!projectile.ReadyToRecycle)
+                if (projectile.InUse)
                     continue;
 
                 projectile.Recycle(armyId, pos, targetPos);
@@ -187,6 +184,8 @@ namespace GameLogic.Controllers
             i = 0;
             for (; i < _projectiles.Length; i++)
                 tempDtos[i] = _projectiles[i];
+
+            _projectiles = tempDtos;
 
             projectile = ref _projectiles[++i]; // first empty slot
             projectile.Recycle(armyId, pos, targetPos);
@@ -281,8 +280,8 @@ namespace GameLogic.Controllers
             {
                 ref ProjectileModel projectile = ref _projectiles[i];
 
-                if (projectile.ReadyToRecycle)
-                    return;
+                if (!projectile.InUse)
+                    continue;
 
                 const float Speed = 50f; // todo: should be taken from shared data
                 float2 vectorTraveled = projectile.Direction * Speed * GameLogicData.DeltaTime;
@@ -294,8 +293,9 @@ namespace GameLogic.Controllers
                 float distance = math.distance(pos, projectile.Target);
                 if (distance <= distanceTraveled) // projectile reached the maximum range
                 {
-                    projectile.ReadyToRecycle = true;
+                    projectile.InUse = false;
                     Signals.ProjectileDestroyed(projectile.Id);
+                    continue;
                 }
 
                 Memory<UnitModel>[] memories = _battleModel.GetEnemies(projectile.ArmyId);
@@ -319,12 +319,16 @@ namespace GameLogic.Controllers
 
                         float2 vec = pos - enemyPos;
                         enemyModel.HealthDelta -= 12 - 6; // todo: projectile attack and enemy defense should be taken from the shared data
-                        projectile.ReadyToRecycle = true;
+                        projectile.InUse = false;
 
                         Signals.UnitHit(enemyModel.Id, new Vector3(vec.x, 0, vec.y));
                         Signals.ProjectileDestroyed(projectile.Id);
+
+                        goto Found;
                     }
                 }
+
+            Found: ;
             }
         }
     }

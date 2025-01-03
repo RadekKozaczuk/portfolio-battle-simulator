@@ -6,6 +6,8 @@ namespace GameLogic.Models
 {
     internal struct ProjectileModel
     {
+        static int _projectileIdCounter;
+
         internal float2 Position
         {
             get => _position;
@@ -17,7 +19,7 @@ namespace GameLogic.Models
         }
         float2 _position;
 
-        internal readonly int Id;
+        internal int Id;
         internal int ArmyId;
         internal float2 Target;
 
@@ -27,27 +29,18 @@ namespace GameLogic.Models
         internal float2 Direction;
 
         /// <summary>
-        /// The projectile is long time dead and ready to be recycled.
+        /// If false then the projectile is ready to be recycled.
         /// </summary>
-        internal bool ReadyToRecycle;
-
-        internal ProjectileModel(int id)
-        {
-            Id = id;
-            ArmyId = int.MinValue;
-            _position = float2.zero;
-            Direction = float2.zero;
-            Target = float2.zero;
-            ReadyToRecycle = true;
-        }
+        internal bool InUse;
 
         internal void Recycle(int armyId, float2 position, float2 target)
         {
+            Id = _projectileIdCounter++;
             ArmyId = armyId;
             _position = position;
             Direction = math.normalize(target - position);
             Target = target;
-            ReadyToRecycle = false;
+            InUse = true;
 
             Signals.ProjectileCreated(Id,
                                       armyId,

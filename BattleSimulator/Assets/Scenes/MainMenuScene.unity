@@ -1851,24 +1851,25 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '<b>The projectile the practical usage of the following concepts:</b>
+  m_text: '<b>The project show case the usage of the following concepts:</b>
 
     -
-    <b>architecture:</b> (ViewModels, MCV, assemblies)
+    <b>architecture:</b> ViewModels, MCV, assemblies
 
     - <b>custom tailor-made
-    implementations:</b> (custom event bus, dependency injector and state machine)
+    implementations:</b> event bus, dependency injector, and the state machine controlling
+    the overall control flow
+
+    - <b>optimization:</b> span, memory, object and
+    structure pooling, job system, and parallelisation via threads (soon)
 
     -
-    <b>optimization:</b> (span, memory, objects and structures pooling, job system)
+    <b>scalability:</b> unit tests, assertions
 
-    -
-    <b>scalability:</b> (unit tests, and assertions)
+    - practical usage of source generators
+    and code analyzers
 
-    - practical usage of source
-    generators
-
-    - and more'
+    - and more (tbd)'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

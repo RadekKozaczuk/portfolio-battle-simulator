@@ -1869,6 +1869,9 @@ MonoBehaviour:
     - practical usage of source generators
     and code analyzers
 
+    - practical usage of ''dynamic'' keyword and reflection
+    in unit tests (to keep existing encapsulation)
+
     - and more (tbd)'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

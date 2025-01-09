@@ -39,7 +39,7 @@ namespace Tests.SpacePartitioning
 
             // four quadrants, 5 units
             var spc = new SpacePartitioningController(bounds, 2, 5);
-            MethodInfo sortMethodInfo = spc.GetType().GetMethod(
+            MethodInfo sortMethod = spc.GetType().GetMethod(
                 "SortElements", BindingFlags.NonPublic | BindingFlags.Instance);
 
             FieldInfo insideInfo = spc.GetType().GetField(
@@ -54,18 +54,18 @@ namespace Tests.SpacePartitioning
             spc.AddUnit(1, 0, new float2(4f, -4f));  // will land in 1st
             spc.AddUnit(2, 0, new float2(-2f, -1f)); // will land in 0th
             spc.AddUnit(3, 0, new float2(-3f, -2f)); // will land in 0th
-            spc.AddUnit(4, 0, new float2(4f, 4f));   // will land in 3rd
+            spc.AddUnit(4, 0, new float2(4f, 1f));   // will land in 3rd
 
             // kill 3rd
             spc.KillUnit(2);
 
             // check if the methods exists
-            Assert.IsNotNull(sortMethodInfo);
+            Assert.IsNotNull(sortMethod);
             Assert.IsNotNull(insideInfo);
             Assert.IsNotNull(insideCountInfo);
 
             // invoke sorting
-            object _ = sortMethodInfo.Invoke(spc, new object[] { });
+            object _ = sortMethod.Invoke(spc, new object[] { });
 
             // 3. Assert
             dynamic units = insideInfo.GetValue(spc);

@@ -133,12 +133,20 @@ namespace Core.Services
                         if (constructors.Length == 0)
                             throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve]");
 
-                        object instance = constructors[0].Invoke(new object[] { });
-                        AddDependencyUnit(type, instance);
-                        SignalService.AddReactiveInstantiatable(instance);
+                        try
+                        {
+                            object instance = constructors[0].Invoke(new object[] { });
+                            AddDependencyUnit(type, instance);
+                            SignalService.AddReactiveInstantiatable(instance);
 
-                        if (typeof(IInitializable).IsAssignableFrom(type))
-                            _initializables.Add((IInitializable)instance);
+                            if (typeof(IInitializable).IsAssignableFrom(type))
+                                _initializables.Add((IInitializable)instance);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            throw;
+                        }
                     }
                 }
 

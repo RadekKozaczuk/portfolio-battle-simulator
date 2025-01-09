@@ -69,7 +69,7 @@ namespace GameLogic.Controllers
             float2 pos = CoreData.UnitCurrPos[model.Id];
             float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
             float2 difference = enemyPos - pos;
-            float2 dirToEnemy = math.normalize(enemyPos - pos);
+            float2 dirToEnemy = math.normalize(difference);
 
             // enemy and pos maybe the same and in such case normal would have been NaN so this check is needed
             if (math.any(difference))

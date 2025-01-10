@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using GameLogic.Controllers;
+using GameLogic.Interfaces;
 using NUnit.Framework;
 using Unity.Mathematics;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace Tests.SpacePartitioning
 {
     public class GetAreaDown
     {
-        SpacePartitioningController _spc;
+        ISpacePartitioningController _spc;
         Type _spcType;
         MethodInfo _getAreaDown;
 
@@ -35,6 +36,13 @@ namespace Tests.SpacePartitioning
             _spc.AddUnit(4, 0, new float2(-2.5f, -5f));   // 1st quadrant
             _spc.AddUnit(5, 0, new float2(4f, 4f));       // 24th quadrant
             _spc.AddUnit(6, 0, new float2(-10f, -15f));   // 0th quadrant
+
+            // layout
+            // |   |   |   |   | 5 | <- 24th quadrant
+            // |   |   |   |   |   |
+            // |   |   | 0 |   |   |
+            // |   | 1 |   | 2 |   |
+            // | 6 |34 |   |   |   |
 
             // sort the elements
             sort!.Invoke(_spc, new object[] { });

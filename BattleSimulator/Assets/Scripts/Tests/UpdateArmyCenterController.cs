@@ -21,7 +21,7 @@ namespace Tests
             /*IBattleModel battle = new GameLogic.Models.BattleModel(armies);
             DependencyInjectionService.Register(battle);
             var controller = DependencyInjectionService<UpdateArmyCenterController>.ManualInjection()*/
-            
+
             //controller.Initialize(battle);
 
             // 2. Act

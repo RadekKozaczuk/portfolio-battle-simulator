@@ -5,6 +5,7 @@ using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Pool;
 using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
@@ -12,6 +13,8 @@ namespace GameLogic.Controllers
     /// <summary>
     /// Job of this controller is to speed up search of elements in 2D space.
     /// The algorithm divides the space into equal brackets.
+    /// Read operations are parallel-friendly.
+    /// <see cref="SortElements"/> is single-threaded.
     /// </summary>
     class SpacePartitioningController : ISpacePartitioningController
     {
@@ -28,16 +31,26 @@ namespace GameLogic.Controllers
 
         struct Unit
         {
+            internal bool Dead
+            {
+                get => _dead;
+                set
+                {
+                    Assert.IsFalse(_dead == value, "Killing already dead unit is not allowed");
+                    _dead = value;
+                }
+            } // 1 bit
+            bool _dead;
+
             // consider data packing
-            internal readonly int UnitId;
-            internal readonly int ArmyId;
-            internal int QuadrantIdX;
-            internal int QuadrantIdY;
+            internal readonly int UnitId; // 16 bits
+            internal readonly int ArmyId; // 8 bits
+            internal int QuadrantIdX; // 8 bits
+            internal int QuadrantIdY; // 8 bits
             internal float2 Position;
-            internal bool DeadOrOutside;
 
             // todo: unfortunately it has to present in every struct as we want the controller to have many instances
-            internal readonly int QuadrantSize;
+            internal readonly int QuadrantSize; // should be outside I think
 
             internal Unit(int unitId, int armyId, int quadrantIdX, int quadrantIdY, float2 position, int quadrantSize)
             {
@@ -46,7 +59,7 @@ namespace GameLogic.Controllers
                 QuadrantIdX = quadrantIdX;
                 QuadrantIdY = quadrantIdY;
                 Position = position;
-                DeadOrOutside = false;
+                _dead = false;
                 QuadrantSize = quadrantSize;
             }
 
@@ -57,7 +70,7 @@ namespace GameLogic.Controllers
                 QuadrantIdX = int.MinValue;
                 QuadrantIdY = int.MinValue;
                 Position = position;
-                DeadOrOutside = false;
+                _dead = false;
                 QuadrantSize = quadrantSize;
             }
         }
@@ -69,23 +82,25 @@ namespace GameLogic.Controllers
         /// </summary>
         readonly Unit[] _inside;
 
+        readonly float[] _bracketsX;
+        readonly float[] _bracketsY;
+        readonly int[] _quadrantStarts;
+        readonly int[] _quadrantLengths;
+        readonly Func<int, int, int, Memory<Unit>>[] _getHorizontalAreas;
+        readonly Func<int, int, int, List<Memory<Unit>>>[] _getVerticalAreas;
+
         /// <summary>
         /// Number of elements in the <see cref="_inside"/> table.
         /// Everything on the right of that is a noise.
         /// </summary>
-        int _insideCount;
+        int _aliveCount;
 
         readonly int _size;
-
-        readonly float[] _bracketsX;
-        readonly float[] _bracketsY;
-
         readonly UnitComparer _comparer = new();
-
-        readonly int[] _quadrantStarts;
-        readonly int[] _quadrantLengths;
-
         bool _unitDiedThisFrame;
+
+        readonly ObjectPool<List<Memory<Unit>>> _memoryPool;
+
 
         // for DI, for now
         [Preserve]
@@ -97,6 +112,13 @@ namespace GameLogic.Controllers
 
             _quadrantStarts = null!;
             _quadrantLengths = null!;
+
+            _getHorizontalAreas = null!;
+            _getVerticalAreas = null!;
+
+            _memoryPool = new ObjectPool<List<Memory<Unit>>>(
+                () => new List<Memory<Unit>>(4),
+                list => list.Clear());
         }
 
         /// <summary>
@@ -140,24 +162,32 @@ namespace GameLogic.Controllers
 
             _quadrantStarts = new int[_size * _size];
             _quadrantLengths = new int[_size * _size];
+
+            _getHorizontalAreas = new Func<int, int, int, Memory<Unit>>[] {GetAreaUp, GetAreaDown};
+            _getVerticalAreas = new Func<int, int, int, List<Memory<Unit>>>[] {GetAreaLeft, GetAreaRight};
+
+            _memoryPool = new ObjectPool<List<Memory<Unit>>>(
+                () => new List<Memory<Unit>>(4),
+                list => list.Clear());
         }
 
+#region Internal Methods
         /// <summary>
         /// Adding a new element means to simply set its quadrantId
         /// </summary>
-        public void AddUnit(int unitId, int armyId, float2 position)
+        void ISpacePartitioningController.AddUnit(int unitId, int armyId, float2 position)
         {
             PositionToQuadrant(position, out int x, out int y);
 
             _inside[unitId] = new Unit(unitId, armyId, x, y, position, _size);
-            _insideCount++;
+            _aliveCount++;
         }
 
-        public void UpdateUnit(int unitId, float2 position)
+        void ISpacePartitioningController.UpdateUnit(int unitId, float2 position)
         {
             PositionToQuadrant(position, out int x, out int y);
 
-            for (int i = 0; i < _insideCount; i++)
+            for (int i = 0; i < _aliveCount; i++)
                 if (_inside[i].UnitId == unitId)
                 {
                     // should stay in this table
@@ -166,27 +196,28 @@ namespace GameLogic.Controllers
                     _inside[unitId].QuadrantIdY = y;
                     return;
                 }
+
+            throw new Exception($"Could not find the unit to update (id: {unitId}). Please ensure if the unit was added or if it is not dead.");
         }
 
-        public void KillUnit(int unitId)
+        void ISpacePartitioningController.KillUnit(int unitId)
         {
-            for (int i = 0; i < _insideCount; i++)
+            for (int i = 0; i < _aliveCount; i++)
                 if (_inside[i].UnitId == unitId)
                 {
-                    _inside[unitId].DeadOrOutside = true; // will be moved to the end of the inside table
-                    _insideCount--;
+                    _inside[unitId].Dead = true; // will be moved to the end of the inside table
+                    _aliveCount--;
                     _unitDiedThisFrame = true;
                     return;
                 }
+
+            throw new Exception($"Could not find the unit to kill (id: {unitId}). Please ensure the unit was added in the first place.");
         }
 
-        public int FindNearestEnemy(float2 position, int excludeArmyId)
+        int ISpacePartitioningController.FindNearestEnemy(float2 position, int excludeArmyId)
         {
             // calculate your quadrant
-
             PositionToQuadrant(position, out int x, out int y);
-
-            // can I find the nearest?
 
             float minDistance = float.MaxValue;
             int nearestId = int.MinValue;
@@ -213,19 +244,129 @@ namespace GameLogic.Controllers
                 }
             }
 
-            if (nearestId == int.MinValue)
+            // did not find or next quadrant is closer
+            bool finished = nearestId != int.MinValue && minDistance < MinDistanceToNextQuadrant(position, x, y);
+
+            if (finished)
                 return nearestId;
 
-            // todo: potential exception - distance to nearest is higher that the distance to the nearest quadrant 
-            // todo: extend search
-            return 0;
+            // extend search
+            for (int searchRadius = 1; searchRadius < _size; searchRadius++)
+            {
+                // horizontal search
+                int area = 0;
+                for (; area < 2; area++)
+                {
+                    Memory<Unit> memory = _getHorizontalAreas[area](x, y, searchRadius);
+                    Span<Unit> units = memory.Span;
+
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        ref Unit unit = ref units[i];
+
+                        // ignore allies
+                        if (unit.ArmyId == excludeArmyId)
+                            continue;
+
+                        // check distance
+                        float distance = math.distance(position, unit.Position);
+                        if (distance < minDistance)
+                        {
+                            minDistance = distance;
+                            nearestId = unit.UnitId;
+                        }
+                    }
+                }
+
+                // vertical search
+                for (area = 0; area < 2; area++)
+                {
+                    List<Memory<Unit>> memories = _getVerticalAreas[area](x, y, searchRadius);
+                    foreach (Memory<Unit> memory in memories)
+                    {
+                        Span<Unit> units = memory.Span;
+
+                        for (int i = 0; i < units.Length; i++)
+                        {
+                            ref Unit unit = ref units[i];
+
+                            // ignore allies
+                            if (unit.ArmyId == excludeArmyId)
+                                continue;
+
+                            // check distance
+                            float distance = math.distance(position, unit.Position);
+                            if (distance < minDistance)
+                            {
+                                minDistance = distance;
+                                nearestId = unit.UnitId;
+                            }
+                        }
+                    }
+
+                    _memoryPool.Release(memories);
+                }
+
+                finished = nearestId != int.MinValue && minDistance < MinDistanceToNextQuadrant(position, x, y);
+
+                if (finished)
+                    return nearestId;
+            }
+
+            throw new Exception("Should not be called when there is no enemies");
         }
 
-        public List<int> FindAllAllies(float2 position, int armyId, float maxDistance)
+        List<int> ISpacePartitioningController.FindAllAllies(float2 position, int armyId, float maxDistance)
         {
-            PositionToQuadrant(position, out int x, out int y);
+            //PositionToQuadrant(position, out int x, out int y);
 
             return new List<int>();
+        }
+#endregion
+
+#region Private Methods
+        /// <summary>
+        /// Calculates the distance to the nearest quadrant.
+        /// </summary>
+        /// <param name="position">Our position</param>
+        /// <param name="x">Quadrant we are in (x coefficient)</param>
+        /// <param name="y">Quadrant we are in (y coefficient)</param>
+        /// <returns></returns>
+        float MinDistanceToNextQuadrant(float2 position, int x, int y)
+        {
+            float minDistance = float.MaxValue;
+            float d;
+
+            // ignore searches that at the edge
+            if (x > 0)
+            {
+                d = _bracketsX[x - 1] - position.x;
+                if (d < minDistance)
+                    minDistance = d;
+            }
+
+            if (x < _size - 1)
+            {
+                d = _bracketsX[x] - position.x;
+                if (d < minDistance)
+                    minDistance = d;
+            }
+
+            if (y > 0)
+            {
+                d = _bracketsY[y - 1] - position.y;
+                if (d < minDistance)
+                    minDistance = d;
+            }
+
+            if (y < _size - 1)
+            {
+                d = _bracketsY[y] - position.y;
+                if (d < minDistance)
+                    minDistance = d;
+            }
+
+            return minDistance;
         }
 
         /// <summary>
@@ -245,14 +386,14 @@ namespace GameLogic.Controllers
             if (_unitDiedThisFrame)
             {
                 // go from start to _elementCount and keep swapping elements until you reach the end
-                for (int i = 0; i < _insideCount; i++)
-                    if (_inside[i].DeadOrOutside)
-                        Swap(_insideCount, i);
+                for (int i = 0; i < _aliveCount; i++)
+                    if (_inside[i].Dead)
+                        Swap(_aliveCount, i);
 
                 _unitDiedThisFrame = false;
             }
 
-            Array.Sort(_inside, 0, _insideCount, _comparer);
+            Array.Sort(_inside, 0, _aliveCount, _comparer);
 
             int currQuadrant = 0;
             int currIndex = 0; // in _inside array
@@ -261,7 +402,7 @@ namespace GameLogic.Controllers
                 _quadrantStarts[currQuadrant] = currIndex;
 
                 // iterate over units until you reach next quadrant
-                for (; currIndex < _insideCount; currIndex++)
+                for (; currIndex < _aliveCount; currIndex++)
                 {
                     ref Unit unit = ref _inside[currIndex];
                     int quadrant = ToQuadrant(unit.QuadrantIdX, unit.QuadrantIdY);
@@ -314,47 +455,57 @@ namespace GameLogic.Controllers
             throw new Exception("Unreachable code reached");
         }
 
-        // todo: Memory instead og Span to make it testable as testing Span is extremely difficult
+        /// <summary>
+        /// The list count will always be 1. It returns a list only for compatibility reasons.
+        /// </summary>
+        /// <param name="searchCenterX"></param>
+        /// <param name="searchCenterY"></param>
+        /// <param name="searchRadius"></param>
+        /// <returns></returns>
+        // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
         Memory<Unit> GetAreaUp(int searchCenterX, int searchCenterY, int searchRadius)
         {
             Assert.IsTrue(searchRadius > 0, "Search radius must be greater than 0. "
                                             + "For radius = 0 there is only one quadrant therefore returning a subarea makes no sense.");
 
+            Assert.IsTrue(searchRadius < _size, "Search radius must be smaller than the size of the quadrant matrix. "
+                                                + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
+
             int y = searchCenterY + searchRadius;
             if (y >= _size)
                 y = _size - 1;
 
-            GetXQuadrantRange(searchCenterX, y, searchRadius, out int firstQuadrant, out int lastQuadrant);
-
-            int start = _quadrantStarts[firstQuadrant];
-            int length = 0;
-            for (int i = firstQuadrant; i <= lastQuadrant; i++)
-                length += _quadrantLengths[i];
+            GetXStartLength(searchCenterX, y, searchRadius, out int start, out int length);
 
             return _inside.AsMemory(start, length);
         }
 
-        // todo: Memory instead og Span to make it testable as testing Span is extremely difficult
+        /// <summary>
+        /// The list count will always be 1. It returns a list only for compatibility reasons.
+        /// </summary>
+        /// <param name="searchCenterX"></param>
+        /// <param name="searchCenterY"></param>
+        /// <param name="searchRadius"></param>
+        /// <returns></returns>
+        // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
         Memory<Unit> GetAreaDown(int searchCenterX, int searchCenterY, int searchRadius)
         {
             Assert.IsTrue(searchRadius > 0, "Search radius must be greater than 0. "
                                             + "For radius = 0 there is only one quadrant therefore returning a subarea makes no sense.");
 
+            Assert.IsTrue(searchRadius < _size, "Search radius must be smaller than the size of the quadrant matrix. "
+                                            + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
+
             int y = searchCenterY - searchRadius;
             if (y < 0)
                 y = 0;
 
-            GetXQuadrantRange(searchCenterX, y, searchRadius, out int firstQuadrant, out int lastQuadrant);
-
-            int start = _quadrantStarts[firstQuadrant];
-            int length = 0;
-            for (int i = firstQuadrant; i <= lastQuadrant; i++)
-                length += _quadrantLengths[i];
+            GetXStartLength(searchCenterX, y, searchRadius, out int start, out int length);
 
             return _inside.AsMemory(start, length);
         }
 
-        void GetXQuadrantRange(int searchCenterX, int y, int searchRadius, out int firstQuadrant, out int lastQuadrant)
+        void GetXStartLength(int searchCenterX, int y, int searchRadius, out int start, out int length)
         {
             int xMin = searchCenterX - searchRadius;
             if (xMin < 0)
@@ -364,48 +515,63 @@ namespace GameLogic.Controllers
             if (xMax >= _size)
                 xMax = _size - 1;
 
-            firstQuadrant = ToQuadrant(xMin, y);
-            lastQuadrant = ToQuadrant(xMax, y);
+            int firstQuadrant = ToQuadrant(xMin, y);
+            int lastQuadrant = ToQuadrant(xMax, y);
+
+            start = _quadrantStarts[firstQuadrant];
+            length = 0;
+            for (int i = firstQuadrant; i <= lastQuadrant; i++)
+                length += _quadrantLengths[i];
         }
 
-        // todo: Memory instead og Span to make it testable as testing Span is extremely difficult
-        Memory<Unit> GetAreaLeft(int searchCenterX, int searchCenterY, int searchRadius)
+        // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
+        List<Memory<Unit>> GetAreaLeft(int searchCenterX, int searchCenterY, int searchRadius)
         {
             Assert.IsTrue(searchRadius > 0, "Search radius must be greater than 0. "
                                             + "For radius = 0 there is only one quadrant therefore returning a subarea makes no sense.");
+
+            Assert.IsTrue(searchRadius < _size, "Search radius must be smaller than the size of the quadrant matrix. "
+                                                + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
 
             int x = searchCenterX - searchRadius;
             if (x < 0)
                 x = 0;
 
-            int yMin = searchCenterY - searchRadius + 1;
-            if (yMin < 0)
-                yMin = 0;
+            GetYStartLength(x, searchCenterY, searchRadius, out int[] start, out int[] length);
 
-            int yMax = searchCenterY + searchRadius - 1;
-            if (yMax >= _size)
-                yMax = _size - 1;
+            List<Memory<Unit>> list = _memoryPool.Get();
 
-            int firstQuadrant = ToQuadrant(x, yMin);
+            for (int i = 0; i < start.Length; i++)
+                list.Add(_inside.AsMemory(start[i], length[i]));
 
-            int start = _quadrantStarts[firstQuadrant];
-            int length = 0;
-            for (int i = yMin; i < yMax; i++)
-                length += _quadrantLengths[ToQuadrant(x, i)];
-
-            return _inside.AsMemory(start, length);
+            return list;
         }
 
-        // todo: Memory instead og Span to make it testable as testing Span is extremely difficult
-        Memory<Unit> GetAreaRight(int searchCenterX, int searchCenterY, int searchRadius)
+        // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
+        List<Memory<Unit>> GetAreaRight(int searchCenterX, int searchCenterY, int searchRadius)
         {
             Assert.IsTrue(searchRadius > 0, "Search radius must be greater than 0. "
                                             + "For radius = 0 there is only one quadrant therefore returning a subarea makes no sense.");
+
+            Assert.IsTrue(searchRadius < _size, "Search radius must be smaller than the size of the quadrant matrix. "
+                                                + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
 
             int x = searchCenterX + searchRadius;
             if (x >= _size)
                 x = _size - 1;
 
+            GetYStartLength(x, searchCenterY, searchRadius, out int[] start, out int[] length);
+
+            List<Memory<Unit>> list = _memoryPool.Get();
+
+            for (int i = 0; i < start.Length; i++)
+                list.Add(_inside.AsMemory(start[i], length[i]));
+
+            return list;
+        }
+
+        void GetYStartLength(int x, int searchCenterY, int searchRadius, out int[] starts, out int[] lengths)
+        {
             int yMin = searchCenterY - searchRadius + 1;
             if (yMin < 0)
                 yMin = 0;
@@ -414,17 +580,25 @@ namespace GameLogic.Controllers
             if (yMax >= _size)
                 yMax = _size - 1;
 
-            int firstQuadrant = ToQuadrant(x, yMin);
+            int length = yMax + 1 - yMin;
+            starts = new int[length];
+            lengths = new int[length];
 
-            int start = _quadrantStarts[firstQuadrant];
-            int length = 0;
-            for (int i = yMin; i < yMax; i++)
-                length += _quadrantLengths[ToQuadrant(x, i)];
+            for (int i = 0; i < length; i++)
+            {
+                int quadrant = ToQuadrant(x, yMin + i);
 
-            return _inside.AsMemory(start, length);
+                // ignore empty quadrant
+                if (_quadrantLengths[quadrant] == 0)
+                    continue;
+
+                starts[i] = _quadrantStarts[quadrant];
+                lengths[i] = _quadrantLengths[quadrant];
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         int ToQuadrant(int x, int y) => x + y * _size;
+#endregion
     }
 }

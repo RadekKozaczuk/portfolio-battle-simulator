@@ -13,40 +13,21 @@ namespace Tests.SpacePartitioning
     public class SortElements
     {
         [Test]
-        public void OneWarriorArmy()
-        {
-            // 1. Arrange
-            var army = new ArmyModel(1, 0);
-            var armies = new List<ArmyModel> {army};
-
-            // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
-            Span<UnitModel> units = battle.GetUnits(0);
-            Span<UnitModel> warriors = battle.GetUnits(0, 0);
-            Span<UnitModel> archers = battle.GetUnits(0, 1);
-
-            // 3. Assert
-            Assert.That(units.Length == 1);
-            Assert.That(warriors.Length == 1);
-            Assert.That(archers.Length == 0);
-        }
-
-        [Test]
         public void MoveDeadOrOutsideElements()
         {
             // 1. Arrange
             var bounds = new Bounds(new Vector3(0, 0, 0), new Vector3(10, 1, 10));
 
             // four quadrants, 5 units
-            var spc = new SpacePartitioningController(bounds, 2, 5);
+            ISpacePartitioningController spc = new SpacePartitioningController(bounds, 2, 5);
             MethodInfo sortMethod = spc.GetType().GetMethod(
                 "SortElements", BindingFlags.NonPublic | BindingFlags.Instance);
 
             FieldInfo insideInfo = spc.GetType().GetField(
                 "_inside", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            FieldInfo insideCountInfo = spc.GetType().GetField(
-                "_insideCount", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo aliveCountInfo = spc.GetType().GetField(
+                "_aliveCount", BindingFlags.NonPublic | BindingFlags.Instance);
 
             // 2. Act
             // add 5 units
@@ -60,16 +41,13 @@ namespace Tests.SpacePartitioning
             spc.KillUnit(2);
 
             // check if the methods exists
-            Assert.IsNotNull(sortMethod);
-            Assert.IsNotNull(insideInfo);
-            Assert.IsNotNull(insideCountInfo);
 
             // invoke sorting
-            object _ = sortMethod.Invoke(spc, new object[] { });
+            object _ = sortMethod!.Invoke(spc, new object[] { });
 
             // 3. Assert
-            dynamic units = insideInfo.GetValue(spc);
-            dynamic insideCount = insideCountInfo.GetValue(spc);
+            dynamic units = insideInfo!.GetValue(spc);
+            dynamic insideCount = aliveCountInfo!.GetValue(spc);
 
             // there is 5 units in total
             Assert.IsTrue(units.Length == 5);
@@ -94,7 +72,7 @@ namespace Tests.SpacePartitioning
             Assert.IsTrue(y0 <= y1 && y1 <= y2 && y2 <= y3);
 
             // fifth unit should be dead
-            bool dead4 = GetUnitValue(4, "DeadOrOutside");
+            bool dead4 = GetUnitValue(4, "_dead");
             int id4 = GetUnitValue(4, "UnitId");
             Assert.IsTrue(dead4 && id4 == 2);
 

@@ -8,11 +8,11 @@ using UnityEngine;
 
 namespace Tests.SpacePartitioning
 {
-    public class GetAreaUp
+    public class GetAreaRight
     {
         ISpacePartitioningController _spc;
         Type _spcType;
-        MethodInfo _getAreaUp;
+        MethodInfo _getAreaRight;
 
         [SetUp]
         public void SetUp()
@@ -23,8 +23,8 @@ namespace Tests.SpacePartitioning
             // 25 quadrants, 4 units
             _spc = new SpacePartitioningController(bounds, 5, 7);
             _spcType = _spc.GetType();
-            _getAreaUp = _spcType.GetMethod(
-                "GetAreaUp", BindingFlags.NonPublic | BindingFlags.Instance);
+            _getAreaRight = _spcType.GetMethod(
+                "GetAreaRight", BindingFlags.NonPublic | BindingFlags.Instance);
 
             MethodInfo sort = _spcType.GetMethod(
                 "SortElements", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -53,49 +53,25 @@ namespace Tests.SpacePartitioning
         {
             _spc = null;
             _spcType = null;
-            _getAreaUp = null;
+            _getAreaRight = null;
         }
 
         [Test]
-        public void Center_25Quadrants_Radius1()
+        public void Quadrant5_25Quadrants_Radius4()
         {
             // 2. Act
-            dynamic units = Utils.MemoryToArray(_getAreaUp!.Invoke(_spc, new object[] {2, 2, 1}));
+            dynamic memoryList = _getAreaRight!.Invoke(_spc, new object[] {0, 1, 4});
+            dynamic memoryArray = Utils.MemoryListToMemoryArray(memoryList);
+            dynamic memory = (memoryArray as Array)!.GetValue(4);
+            dynamic units = Utils.MemoryToArray(memory);
 
             // 3. Assert
-            Assert.IsTrue(units.Length == 0);
-        }
-
-        [Test]
-        public void Center_25Quadrants_Radius2()
-        {
-            // 2. Act
-            dynamic units = Utils.MemoryToArray(_getAreaUp!.Invoke(_spc, new object[] {2, 2, 2}));
-
-            // 3. Assert
+            Assert.IsTrue(memoryArray.Length == 5);
             Assert.IsTrue(units.Length == 1);
 
             int id0 = Utils.GetElementValue(units, 0, "UnitId");
 
             Assert.IsTrue(id0 == 5);
-        }
-
-        [Test]
-        public void TopLeftCorner_25Quadrants_Radius3()
-        {
-            // 2. Act
-            dynamic units = Utils.MemoryToArray(_getAreaUp!.Invoke(_spc, new object[] {0, 4, 3}));
-
-            // 3. Assert
-            Assert.IsTrue(units.Length == 0);
-        }
-
-        [Test]
-        public void TopLeftCorner_25Quadrants_Radius5()
-        {
-            // 2 & 3. Act & Assert
-            Assert.Throws<TargetInvocationException>(
-                () => Utils.MemoryToArray(_getAreaUp!.Invoke(_spc, new object[] {0, 4, 5})));
         }
     }
 }

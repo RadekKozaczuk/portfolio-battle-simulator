@@ -43,6 +43,9 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly InitializeBattleModelController _battleModelController;
 
+        [Inject]
+        static readonly ISpacePartitioningController _spacePartitioningController;
+
         // todo: should be possible to inject directly
         readonly IUnitController[] _unitControllers = new IUnitController[2];
 
@@ -155,7 +158,8 @@ namespace GameLogic.Controllers
                     continue;
 
                 _battleModel.UnitDied(units[i].ArmyId);
-                Signals.UnitDied(i);
+                //_spacePartitioningController.KillUnit(units[i].Id); // todo: add in the future
+                Signals.UnitDied(units[i].Id);
             }
         }
 

@@ -35,7 +35,7 @@ namespace Core.Services
             "Dtos",
             "Editor",
             "Enums",
-            "Systems",
+            "Services",
             "ViewModels",
             "Views"
         };

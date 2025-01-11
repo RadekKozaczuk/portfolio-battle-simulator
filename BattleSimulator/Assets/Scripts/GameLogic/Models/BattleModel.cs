@@ -114,7 +114,7 @@ namespace GameLogic.Models
         /// <returns>All units from the given army.</returns>
         Span<UnitModel> IBattleModel.GetUnits(int armyId)
         {
-            Assert.IsTrue(armyId >=0 && armyId < _armyCount,
+            Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
                           "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
 
             return new Span<UnitModel>(_units, _armyStarts[armyId], _armyLengths[armyId]);

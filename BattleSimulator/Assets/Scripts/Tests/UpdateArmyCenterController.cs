@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Core.Models;
-using Core.Services;
-using GameLogic.Controllers;
-using GameLogic.Interfaces;
 using NUnit.Framework;
 
 namespace Tests
 {
-    public class Troll
+    public class UpdateArmyCenterController
     {
         [Test]
         public void OneWarriorArmy()

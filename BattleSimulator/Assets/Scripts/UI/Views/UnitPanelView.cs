@@ -12,7 +12,7 @@ namespace UI.Views
         internal UnitModel Model => new()
         {
             Amount = int.Parse(_amount.text),
-            Strategy = Strategy.Basic,
+            Strategy = (Strategy)_dropdown.value,
             Name = _title.text.ToLower()
         };
 
@@ -25,6 +25,9 @@ namespace UI.Views
         [SerializeField]
         TextMeshProUGUI _amount;
 
+        [SerializeField]
+        TMP_Dropdown _dropdown;
+
         void Awake()
         {
             _slider.onValueChanged.AddListener(SliderAction);
@@ -34,6 +37,8 @@ namespace UI.Views
         {
             _title.text = unit.Name;
             _slider.value = unit.Amount;
+            _amount.text = unit.Amount.ToString();
+            _dropdown.value = (int)unit.Strategy;
         }
 
         void SliderAction(float value)

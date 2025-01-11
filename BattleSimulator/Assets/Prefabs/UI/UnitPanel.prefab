@@ -467,6 +467,7 @@ MonoBehaviour:
   _title: {fileID: 7152100350940156998}
   _slider: {fileID: 4123337117535883308}
   _amount: {fileID: 95914893076189317}
+  _dropdown: {fileID: 8561195814763882635}
 --- !u!1 &1894892040815633395
 GameObject:
   m_ObjectHideFlags: 0

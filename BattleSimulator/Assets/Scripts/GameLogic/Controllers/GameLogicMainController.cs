@@ -43,8 +43,10 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly InitializeBattleModelController _battleModelController;
 
-        [Inject]
-        static readonly ISpacePartitioningController _spacePartitioningController;
+        ISpacePartitioningController _spacePartitioningController;
+
+        //[Inject]
+        //static readonly ISpacePartitioningController _spacePartitioningController;
 
         // todo: should be possible to inject directly
         readonly IUnitController[] _unitControllers = new IUnitController[2];
@@ -69,6 +71,13 @@ namespace GameLogic.Controllers
             _battleModel = model;
             _updateArmyCenterController.Initialize(_battleModel);
             _battleModelController.InitializeModel(model, spawnZones);
+
+            Span<UnitModel> units = _battleModel.GetUnits();
+
+            Vector3 center = Vector3.zero;
+            var bounds = new Bounds(center, new Vector3(100, 1, 100));
+            _spacePartitioningController = new SpacePartitioningController(bounds, 5, units.Length);
+            _spacePartitioningController.UpdateUnits();
         }
 
         public void CustomUpdate()
@@ -135,7 +144,7 @@ namespace GameLogic.Controllers
 
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
-                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic);
+                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic); // todo: should be taken from the model
                     action(armyId, unitType, _battleModel);
                 }
             }
@@ -158,9 +167,11 @@ namespace GameLogic.Controllers
                     continue;
 
                 _battleModel.UnitDied(units[i].ArmyId);
-                //_spacePartitioningController.KillUnit(units[i].Id); // todo: add in the future
+                //_spacePartitioningController.KillUnit(units[i].Id); // todo: use in the future
                 Signals.UnitDied(units[i].Id);
             }
+
+            //_spacePartitioningController.UpdateUnits(); // todo: use in the future
         }
 
         internal void AddProjectile(int armyId, float2 pos, float2 targetPos)

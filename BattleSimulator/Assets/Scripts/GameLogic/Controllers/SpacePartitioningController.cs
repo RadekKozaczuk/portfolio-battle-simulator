@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Core;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine;
@@ -97,12 +98,12 @@ namespace GameLogic.Controllers
 
         readonly int _size;
         readonly UnitComparer _comparer = new();
-        bool _unitDiedThisFrame;
+        int _unitDiedThisFrame;
 
         readonly ObjectPool<List<Memory<Unit>>> _memoryPool;
+        readonly ObjectPool<List<int>> _listPool;
 
-
-        // for DI, for now
+        // todo: for DI, for now
         [Preserve]
         SpacePartitioningController()
         {
@@ -116,9 +117,8 @@ namespace GameLogic.Controllers
             _getHorizontalAreas = null!;
             _getVerticalAreas = null!;
 
-            _memoryPool = new ObjectPool<List<Memory<Unit>>>(
-                () => new List<Memory<Unit>>(4),
-                list => list.Clear());
+            _memoryPool = null!;
+            _listPool = null!;
         }
 
         /// <summary>
@@ -169,6 +169,8 @@ namespace GameLogic.Controllers
             _memoryPool = new ObjectPool<List<Memory<Unit>>>(
                 () => new List<Memory<Unit>>(4),
                 list => list.Clear());
+
+            _listPool = new ObjectPool<List<int>>(() => new List<int>(), list => list.Clear());
         }
 
 #region Internal Methods
@@ -183,31 +185,15 @@ namespace GameLogic.Controllers
             _aliveCount++;
         }
 
-        void ISpacePartitioningController.UpdateUnit(int unitId, float2 position)
-        {
-            PositionToQuadrant(position, out int x, out int y);
-
-            for (int i = 0; i < _aliveCount; i++)
-                if (_inside[i].UnitId == unitId)
-                {
-                    // should stay in this table
-                    _inside[unitId].Position = position;
-                    _inside[unitId].QuadrantIdX = x;
-                    _inside[unitId].QuadrantIdY = y;
-                    return;
-                }
-
-            throw new Exception($"Could not find the unit to update (id: {unitId}). Please ensure if the unit was added or if it is not dead.");
-        }
-
         void ISpacePartitioningController.KillUnit(int unitId)
         {
-            for (int i = 0; i < _aliveCount; i++)
+            // it goes over all elements but in reality dead units are moved to the right it never does full run
+            for (int i = 0; i < _inside.Length; i++)
                 if (_inside[i].UnitId == unitId)
                 {
-                    _inside[unitId].Dead = true; // will be moved to the end of the inside table
-                    _aliveCount--;
-                    _unitDiedThisFrame = true;
+                    _inside[i].Dead = true; // will be moved to the end of the inside table
+                    //_aliveCount--; // todo: I think units should be sorted at at the end of the frame
+                    _unitDiedThisFrame++;
                     return;
                 }
 
@@ -245,20 +231,20 @@ namespace GameLogic.Controllers
             }
 
             // did not find or next quadrant is closer
-            bool finished = nearestId != int.MinValue && minDistance < MinDistanceToNextQuadrant(position, x, y);
+            float distToQuadrant = MinDistanceToNextQuadrant(position, x, y, 1);
+            bool finished = nearestId != int.MinValue && minDistance < distToQuadrant;
 
             if (finished)
                 return nearestId;
 
-            // extend search
+            // extended search
             for (int searchRadius = 1; searchRadius < _size; searchRadius++)
             {
                 // horizontal search
                 int area = 0;
                 for (; area < 2; area++)
                 {
-                    Memory<Unit> memory = _getHorizontalAreas[area](x, y, searchRadius);
-                    Span<Unit> units = memory.Span;
+                    Span<Unit> units = _getHorizontalAreas[area](x, y, searchRadius).Span;
 
                     for (int i = 0; i < units.Length; i++)
                     {
@@ -270,11 +256,11 @@ namespace GameLogic.Controllers
 
                         // check distance
                         float distance = math.distance(position, unit.Position);
-                        if (distance < minDistance)
-                        {
-                            minDistance = distance;
-                            nearestId = unit.UnitId;
-                        }
+                        if (distance >= minDistance)
+                            continue;
+
+                        minDistance = distance;
+                        nearestId = unit.UnitId;
                     }
                 }
 
@@ -296,77 +282,152 @@ namespace GameLogic.Controllers
 
                             // check distance
                             float distance = math.distance(position, unit.Position);
-                            if (distance < minDistance)
-                            {
-                                minDistance = distance;
-                                nearestId = unit.UnitId;
-                            }
+                            if (distance >= minDistance)
+                                continue;
+
+                            minDistance = distance;
+                            nearestId = unit.UnitId;
                         }
                     }
 
                     _memoryPool.Release(memories);
                 }
 
-                finished = nearestId != int.MinValue && minDistance < MinDistanceToNextQuadrant(position, x, y);
+                distToQuadrant = MinDistanceToNextQuadrant(position, x, y, searchRadius + 1);
+                finished = nearestId != int.MinValue && minDistance < distToQuadrant;
 
                 if (finished)
                     return nearestId;
             }
 
-            throw new Exception("Should not be called when there is no enemies");
+            throw new Exception("Should not be called if there is no enemies present.");
         }
 
-        List<int> ISpacePartitioningController.FindAllAllies(float2 position, int armyId, float maxDistance)
-        {
-            //PositionToQuadrant(position, out int x, out int y);
-
-            return new List<int>();
-        }
-#endregion
-
-#region Private Methods
         /// <summary>
-        /// Calculates the distance to the nearest quadrant.
+        /// 
         /// </summary>
-        /// <param name="position">Our position</param>
-        /// <param name="x">Quadrant we are in (x coefficient)</param>
-        /// <param name="y">Quadrant we are in (y coefficient)</param>
+        /// <param name="position"></param>
+        /// <param name="exceptUnitId"></param>
+        /// <param name="maxDistance">Inclusive</param>
         /// <returns></returns>
-        float MinDistanceToNextQuadrant(float2 position, int x, int y)
+        List<int> ISpacePartitioningController.FindAllNearbyUnits(float2 position, int exceptUnitId, float maxDistance)
         {
-            float minDistance = float.MaxValue;
-            float d;
+            List<int> nearestUnits = _listPool.Get();
 
-            // ignore searches that at the edge
-            if (x > 0)
+            // calculate your quadrant
+            PositionToQuadrant(position, out int x, out int y);
+
+            // if no - extend search
+            // go in bigger and bigger circles    
+            int quadrant = ToQuadrant(x, y);
+
+            // search within your quadrant
+            Span<Unit> span = _inside.AsSpan(_quadrantStarts[quadrant], _quadrantLengths[quadrant]);
+            for (int i = 0; i < span.Length; i++)
             {
-                d = _bracketsX[x - 1] - position.x;
-                if (d < minDistance)
-                    minDistance = d;
+                ref Unit unit = ref span[i];
+
+                // ignore yourself
+                if (unit.UnitId == exceptUnitId)
+                    continue;
+
+                float distance = math.distance(position, unit.Position);
+                if (distance <= maxDistance)
+                    nearestUnits.Add(unit.UnitId);
             }
 
-            if (x < _size - 1)
+            // elements can still be in surrounding quadrants
+            float distToQuadrant = MinDistanceToNextQuadrant(position, x, y, 1);
+            bool finished = distToQuadrant > maxDistance;
+
+            if (finished)
+                return nearestUnits;
+
+            // extended search
+            for (int searchRadius = 1; searchRadius < _size; searchRadius++)
             {
-                d = _bracketsX[x] - position.x;
-                if (d < minDistance)
-                    minDistance = d;
+                // horizontal search
+                int area = 0;
+                for (; area < 2; area++)
+                {
+                    Span<Unit> units = _getHorizontalAreas[area](x, y, searchRadius).Span;
+
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        ref Unit unit = ref units[i];
+
+                        // ignore yourself
+                        // in edge cases extended search will return an overlapping area to previous search except wider
+                        if (unit.UnitId == exceptUnitId)
+                            continue;
+
+                        // check distance
+                        float distance = math.distance(position, unit.Position);
+                        if (distance >= maxDistance)
+                            continue;
+
+                        if (!nearestUnits.Contains(unit.UnitId))
+                            nearestUnits.Add(unit.UnitId);
+                    }
+                }
+
+                // vertical search
+                for (area = 0; area < 2; area++)
+                {
+                    List<Memory<Unit>> memories = _getVerticalAreas[area](x, y, searchRadius);
+                    foreach (Memory<Unit> memory in memories)
+                    {
+                        Span<Unit> units = memory.Span;
+
+                        for (int i = 0; i < units.Length; i++)
+                        {
+                            ref Unit unit = ref units[i];
+
+                            // ignore yourself
+                            // in edge cases extended search will return an overlapping area to previous search except wider
+                            if (unit.UnitId == exceptUnitId)
+                                continue;
+
+                            // check distance
+                            float distance = math.distance(position, unit.Position);
+                            if (distance >= maxDistance)
+                                continue;
+
+                            if (!nearestUnits.Contains(unit.UnitId))
+                                nearestUnits.Add(unit.UnitId);
+                        }
+                    }
+
+                    _memoryPool.Release(memories);
+                }
+
+                // elements can still be in surrounding quadrants
+                distToQuadrant = MinDistanceToNextQuadrant(position, x, y, searchRadius + 1);
+                finished = distToQuadrant > maxDistance;
+
+                if (finished)
+                    return nearestUnits;
             }
 
-            if (y > 0)
+            return nearestUnits;
+        }
+
+        void ISpacePartitioningController.Release(List<int> list) => _listPool.Release(list);
+
+        void ISpacePartitioningController.UpdateUnits()
+        {
+            for (int i = 0; i < _aliveCount; i++)
             {
-                d = _bracketsY[y - 1] - position.y;
-                if (d < minDistance)
-                    minDistance = d;
+                int id = _inside[i].UnitId;
+                float2 pos = CoreData.UnitCurrPos[id];
+                PositionToQuadrant(pos, out int x, out int y);
+
+                _inside[i].Position = pos;
+                _inside[i].QuadrantIdX = x;
+                _inside[i].QuadrantIdY = y;
             }
 
-            if (y < _size - 1)
-            {
-                d = _bracketsY[y] - position.y;
-                if (d < minDistance)
-                    minDistance = d;
-            }
-
-            return minDistance;
+            SortElements();
         }
 
         /// <summary>
@@ -383,14 +444,16 @@ namespace GameLogic.Controllers
             // todo: also case when there is only one quadrant
 
             // move dead to the right
-            if (_unitDiedThisFrame)
+            if (_unitDiedThisFrame > 0)
             {
+                _aliveCount -= _unitDiedThisFrame;
+
                 // go from start to _elementCount and keep swapping elements until you reach the end
                 for (int i = 0; i < _aliveCount; i++)
                     if (_inside[i].Dead)
                         Swap(_aliveCount, i);
 
-                _unitDiedThisFrame = false;
+                _unitDiedThisFrame = 0;
             }
 
             Array.Sort(_inside, 0, _aliveCount, _comparer);
@@ -400,6 +463,7 @@ namespace GameLogic.Controllers
             for (int i = 0; i < _size * _size; i++)
             {
                 _quadrantStarts[currQuadrant] = currIndex;
+                _quadrantLengths[currQuadrant] = 0;
 
                 // iterate over units until you reach next quadrant
                 for (; currIndex < _aliveCount; currIndex++)
@@ -411,6 +475,10 @@ namespace GameLogic.Controllers
                     if (currQuadrant == quadrant)
                     {
                         _quadrantLengths[currQuadrant]++;
+
+                        // last unit
+                        if (currIndex == _aliveCount - 1)
+                            currQuadrant++;
                     }
                     else
                     {
@@ -420,12 +488,56 @@ namespace GameLogic.Controllers
                 }
             }
         }
+#endregion
+
+#region Private Methods
+        /// <summary>
+        /// Calculates the distance to the nearest quadrant.
+        /// </summary>
+        /// <param name="position">Our position</param>
+        /// <param name="x">Quadrant we are in (x coefficient)</param>
+        /// <param name="y">Quadrant we are in (y coefficient)</param>
+        /// <param name="searchRadius"></param>
+        /// <returns></returns>
+        float MinDistanceToNextQuadrant(float2 position, int x, int y, int searchRadius)
+        {
+            float minDistance = float.MaxValue;
+            float distance;
+
+            // ignore searches that at the edge
+            if (x - searchRadius >= 0)
+            {
+                distance = math.abs(position.x - _bracketsX[x - searchRadius + 1]);
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+
+            if (x + searchRadius < _size)
+            {
+                distance = math.abs(position.x - _bracketsX[x + searchRadius]);
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+
+            if (y - searchRadius >= 0)
+            {
+                distance = math.abs(position.y - _bracketsY[y - searchRadius + 1]);
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+
+            if (y + searchRadius < _size)
+            {
+                distance = math.abs(position.y - _bracketsY[y + searchRadius]);
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+
+            return minDistance;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Swap(int a, int b) => (_inside[b], _inside[a]) = (_inside[a], _inside[b]);
-
-        // todo: maybe will be reused if system is going to use list as a return structure
-        //public void ReturnList(List<int> list) => _retValPool.Release(list);
 
         /// <summary>
         /// Returns the x and y of the quadrant this position belongs to.
@@ -452,16 +564,12 @@ namespace GameLogic.Controllers
                     return;
                 }
 
-            throw new Exception("Unreachable code reached");
+            throw new Exception("Unable to map position to quadrant.");
         }
 
         /// <summary>
         /// The list count will always be 1. It returns a list only for compatibility reasons.
         /// </summary>
-        /// <param name="searchCenterX"></param>
-        /// <param name="searchCenterY"></param>
-        /// <param name="searchRadius"></param>
-        /// <returns></returns>
         // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
         Memory<Unit> GetAreaUp(int searchCenterX, int searchCenterY, int searchRadius)
         {
@@ -483,10 +591,6 @@ namespace GameLogic.Controllers
         /// <summary>
         /// The list count will always be 1. It returns a list only for compatibility reasons.
         /// </summary>
-        /// <param name="searchCenterX"></param>
-        /// <param name="searchCenterY"></param>
-        /// <param name="searchRadius"></param>
-        /// <returns></returns>
         // todo: Span would be better but is Memory because writing unit tests for Spans is extremely difficult
         Memory<Unit> GetAreaDown(int searchCenterX, int searchCenterY, int searchRadius)
         {
@@ -494,7 +598,7 @@ namespace GameLogic.Controllers
                                             + "For radius = 0 there is only one quadrant therefore returning a subarea makes no sense.");
 
             Assert.IsTrue(searchRadius < _size, "Search radius must be smaller than the size of the quadrant matrix. "
-                                            + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
+                                                + "Higher radiuses makes no sense because the borderline quadrants are infinite.");
 
             int y = searchCenterY - searchRadius;
             if (y < 0)
@@ -541,6 +645,7 @@ namespace GameLogic.Controllers
 
             List<Memory<Unit>> list = _memoryPool.Get();
 
+            // ReSharper disable once LoopCanBeConvertedToQuery
             for (int i = 0; i < start.Length; i++)
                 list.Add(_inside.AsMemory(start[i], length[i]));
 
@@ -564,6 +669,7 @@ namespace GameLogic.Controllers
 
             List<Memory<Unit>> list = _memoryPool.Get();
 
+            // ReSharper disable once LoopCanBeConvertedToQuery
             for (int i = 0; i < start.Length; i++)
                 list.Add(_inside.AsMemory(start[i], length[i]));
 

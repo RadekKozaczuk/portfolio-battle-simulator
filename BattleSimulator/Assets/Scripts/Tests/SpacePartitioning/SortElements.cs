@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
-using Core.Models;
 using GameLogic.Controllers;
 using GameLogic.Interfaces;
 using NUnit.Framework;
@@ -20,14 +18,16 @@ namespace Tests.SpacePartitioning
 
             // four quadrants, 5 units
             ISpacePartitioningController spc = new SpacePartitioningController(bounds, 2, 5);
-            MethodInfo sortMethod = spc.GetType().GetMethod(
-                "SortElements", BindingFlags.NonPublic | BindingFlags.Instance);
+            Type spcType = spc.GetType();
 
-            FieldInfo insideInfo = spc.GetType().GetField(
+            FieldInfo insideInfo = spcType.GetField(
                 "_inside", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            FieldInfo aliveCountInfo = spc.GetType().GetField(
+            FieldInfo aliveCountInfo = spcType.GetField(
                 "_aliveCount", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            MethodInfo sort = spcType.GetMethod(
+                "SortElements", BindingFlags.NonPublic | BindingFlags.Instance);
 
             // 2. Act
             // add 5 units
@@ -43,7 +43,7 @@ namespace Tests.SpacePartitioning
             // check if the methods exists
 
             // invoke sorting
-            object _ = sortMethod!.Invoke(spc, new object[] { });
+            sort!.Invoke(spc, new object[] { });
 
             // 3. Assert
             dynamic units = insideInfo!.GetValue(spc);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using GameLogic.Controllers;
 using GameLogic.Interfaces;
@@ -38,13 +38,13 @@ namespace Tests.SpacePartitioning
             _spc.AddUnit(6, 0, new float2(-10f, -15f));   // 0th quadrant
 
             // layout
+            //    -3  -1   1   3
             // |   |   |   |   | 5 | <- 24th quadrant
             // |   |   |   |   |   |
             // |   |   | 0 |   |   |
             // |   | 1 |   | 2 |   |
             // | 6 |34 |   |   |   |
 
-            // sort the elements
             sort!.Invoke(_spc, new object[] { });
         }
 

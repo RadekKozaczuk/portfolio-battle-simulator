@@ -303,7 +303,7 @@ namespace GameLogic.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Returns a list of id that are within the given distance.
         /// </summary>
         /// <param name="position"></param>
         /// <param name="exceptUnitId"></param>
@@ -640,13 +640,16 @@ namespace GameLogic.Controllers
             if (x < 0)
                 x = 0;
 
-            GetYStartLength(x, searchCenterY, searchRadius, out int[] start, out int[] length);
+            GetYStartLength(x, searchCenterY, searchRadius, out List<int> start, out List<int> length);
 
             List<Memory<Unit>> list = _memoryPool.Get();
 
             // ReSharper disable once LoopCanBeConvertedToQuery
-            for (int i = 0; i < start.Length; i++)
+            for (int i = 0; i < start.Count; i++)
                 list.Add(_inside.AsMemory(start[i], length[i]));
+
+            _listPool.Release(start);
+            _listPool.Release(length);
 
             return list;
         }
@@ -664,18 +667,24 @@ namespace GameLogic.Controllers
             if (x >= _size)
                 x = _size - 1;
 
-            GetYStartLength(x, searchCenterY, searchRadius, out int[] start, out int[] length);
+            GetYStartLength(x, searchCenterY, searchRadius, out List<int> start, out List<int> length);
 
             List<Memory<Unit>> list = _memoryPool.Get();
 
             // ReSharper disable once LoopCanBeConvertedToQuery
-            for (int i = 0; i < start.Length; i++)
+            for (int i = 0; i < start.Count; i++)
                 list.Add(_inside.AsMemory(start[i], length[i]));
+
+            _listPool.Release(start);
+            _listPool.Release(length);
 
             return list;
         }
 
-        void GetYStartLength(int x, int searchCenterY, int searchRadius, out int[] starts, out int[] lengths)
+        /// <summary>
+        /// List are pooled and should be released.
+        /// </summary>
+        void GetYStartLength(int x, int searchCenterY, int searchRadius, out List<int> starts, out List<int> lengths)
         {
             int yMin = searchCenterY - searchRadius + 1;
             if (yMin < 0)
@@ -686,8 +695,8 @@ namespace GameLogic.Controllers
                 yMax = _size - 1;
 
             int length = yMax + 1 - yMin;
-            starts = new int[length];
-            lengths = new int[length];
+            starts = _listPool.Get();
+            lengths = _listPool.Get();
 
             for (int i = 0; i < length; i++)
             {
@@ -697,8 +706,8 @@ namespace GameLogic.Controllers
                 if (_quadrantLengths[quadrant] == 0)
                     continue;
 
-                starts[i] = _quadrantStarts[quadrant];
-                lengths[i] = _quadrantLengths[quadrant];
+                starts.Add(_quadrantStarts[quadrant]);
+                lengths.Add(_quadrantLengths[quadrant]);
             }
         }
 

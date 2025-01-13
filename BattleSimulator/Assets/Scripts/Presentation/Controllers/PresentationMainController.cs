@@ -170,7 +170,9 @@ namespace Presentation.Controllers
         [React]
         static void OnUnitHit(int unitId, Vector3 attackDir)
         {
-            _units[unitId]!.Hit(attackDir);
+            // todo: race condition
+            if (_units[unitId] != null)
+                _units[unitId]!.Hit(attackDir);
         }
     }
 }

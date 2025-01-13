@@ -419,7 +419,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 1
-  m_AdditionalShaderChannelsFlag: 25
+  m_AdditionalShaderChannelsFlag: 1
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -1826,10 +1826,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1503831465}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 4.9939, y: -24.6059}
-  m_SizeDelta: {x: 540.5397, y: 457.3678}
+  m_AnchorMin: {x: 0.05, y: 0.2}
+  m_AnchorMax: {x: 0.95, y: 0.75}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1876669991
 MonoBehaviour:
@@ -1851,17 +1851,17 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '<b>The project show case the usage of the following concepts:</b>
+  m_text: '<b>The project showcases the usage of the following concepts:</b>
 
     -
-    <b>architecture:</b> ViewModels, MCV, assemblies
+    <b>architecture:</b> ViewModels, MVC, layers (assemblies)
 
     - <b>custom tailor-made
     implementations:</b> event bus, dependency injector, and the state machine controlling
     the overall control flow
 
     - <b>optimization:</b> span, memory, object and
-    structure pooling, job system, and parallelisation via threads (soon)
+    structure pooling, job system, and parallelization via threads (soon)
 
     -
     <b>scalability:</b> unit tests, assertions
@@ -1869,7 +1869,7 @@ MonoBehaviour:
     - practical usage of source generators
     and code analyzers
 
-    - practical usage of ''dynamic'' keyword and reflection
+    - practical usage of the ''dynamic'' keyword and reflection
     in unit tests (to keep existing encapsulation)
 
     - and more (tbd)'

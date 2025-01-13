@@ -192,7 +192,6 @@ namespace GameLogic.Controllers
                 if (_inside[i].UnitId == unitId)
                 {
                     _inside[i].Dead = true; // will be moved to the end of the inside table
-                    //_aliveCount--; // todo: I think units should be sorted at at the end of the frame
                     _unitDiedThisFrame++;
                     return;
                 }
@@ -444,17 +443,17 @@ namespace GameLogic.Controllers
             // todo: also case when there is only one quadrant
 
             // move dead to the right
-            if (_unitDiedThisFrame > 0)
-            {
-                _aliveCount -= _unitDiedThisFrame;
-
+            int lastChecked = 0;
+            while (_unitDiedThisFrame > 0)
                 // go from start to _elementCount and keep swapping elements until you reach the end
-                for (int i = 0; i < _aliveCount; i++)
+                for (int i = lastChecked; i < _aliveCount; i++)
                     if (_inside[i].Dead)
-                        Swap(_aliveCount, i);
-
-                _unitDiedThisFrame = 0;
-            }
+                    {
+                        Swap(i, --_aliveCount);
+                        _unitDiedThisFrame--;
+                        lastChecked++;
+                        break;
+                    }
 
             Array.Sort(_inside, 0, _aliveCount, _comparer);
 
@@ -537,7 +536,7 @@ namespace GameLogic.Controllers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Swap(int a, int b) => (_inside[b], _inside[a]) = (_inside[a], _inside[b]);
+        void Swap(int a, int b) => (_inside[a], _inside[b]) = (_inside[b], _inside[a]);
 
         /// <summary>
         /// Returns the x and y of the quadrant this position belongs to.

@@ -11,6 +11,9 @@ namespace GameLogic.Interfaces
 
         internal bool OneOrZeroArmiesLeft(out int numLeft);
 
+        /// <summary>
+        /// Keeps track of the remaining unit count.
+        /// </summary>
         internal void UnitDied(int armyId);
 
         internal Strategy GetStrategy(int armyId, int unitType);

@@ -76,7 +76,11 @@ namespace GameLogic.Controllers
 
             Vector3 center = Vector3.zero;
             var bounds = new Bounds(center, new Vector3(100, 1, 100));
-            _spacePartitioningController = new SpacePartitioningController(bounds, 5, units.Length);
+            _spacePartitioningController = new SpacePartitioningController(bounds, 8, units.Length);
+
+            for (int i = 0; i < units.Length; i++)
+                _spacePartitioningController.AddUnit(i, units[i].ArmyId, CoreData.UnitCurrPos[i]);
+
             _spacePartitioningController.UpdateUnits();
         }
 
@@ -126,19 +130,13 @@ namespace GameLogic.Controllers
                         continue;
 
                     int unitId = units[i].Id;
-                    Memory<UnitModel>[] allies = _battleModel.GetUnitsExcept(armyId, unitId);
+                    float2 pos = CoreData.UnitCurrPos[unitId];
+                    List<int> nearbyUnits = _spacePartitioningController.FindAllNearbyUnits(pos, unitId, 2f);
 
-                    foreach (Memory<UnitModel> memory in allies)
-                        PushAwayFromAllies(unitId, memory.Span);
+                    PushAway(unitId, nearbyUnits);
+                    _spacePartitioningController.Release(nearbyUnits);
 
-                    Memory<UnitModel>[] enemies = _battleModel.GetEnemies(armyId);
-                    foreach (Memory<UnitModel> memory in enemies)
-                    {
-                        // todo: additional check if not overwriting in case of more than 2 armies
-                        int nearestEnemyId = PushAwayFromEnemiesAndFindNearest(unitId, memory.Span);
-                        units[i].NearestEnemyId = nearestEnemyId;
-                    }
-
+                    units[i].NearestEnemyId = _spacePartitioningController.FindNearestEnemy(pos, armyId);
                     units[i].AttackCooldown -= GameLogicData.DeltaTime;
                 }
 
@@ -168,11 +166,11 @@ namespace GameLogic.Controllers
                     continue;
 
                 _battleModel.UnitDied(units[i].ArmyId);
-                //_spacePartitioningController.KillUnit(units[i].Id); // todo: use in the future
+                _spacePartitioningController.KillUnit(units[i].Id); // todo: use in the future
                 Signals.UnitDied(units[i].Id);
             }
 
-            //_spacePartitioningController.UpdateUnits(); // todo: use in the future
+            _spacePartitioningController.UpdateUnits(); // todo: use in the future
         }
 
         internal void AddProjectile(int armyId, float2 pos, float2 targetPos)
@@ -210,80 +208,24 @@ namespace GameLogic.Controllers
         /// <summary>
         /// Pushes all units (regardless of their army membership) away from each other.
         /// </summary>
-        static void PushAwayFromAllies(int unitId, Span<UnitModel> allies)
+        static void PushAway(int unitId, List<int> nearbyUnits)
         {
             float2 currPos = CoreData.UnitCurrPos[unitId];
             float2 posDelta = float2.zero;
 
             // on allies calculate only pushback
-            for (int i = 0; i < allies.Length; i++)
+            foreach (int otherUnit in nearbyUnits)
             {
-                ref UnitModel otherUnit = ref allies[i];
-
-                if (otherUnit.Health <= 0)
-                    continue;
-
-                float2 otherUnitPos = CoreData.UnitCurrPos[otherUnit.Id];
+                float2 otherUnitPos = CoreData.UnitCurrPos[otherUnit];
                 float distance = math.distance(currPos, otherUnitPos);
-
-                if (distance >= 2f)
-                    continue;
 
                 // calculating normal from 0,0 results in a NaN
                 float2 difference = currPos - otherUnitPos;
-
-                // in case units are on the same spot we ignore the calculation to prevent error from happening
-                if (math.any(difference))
-                {
-                    float2 normal = math.normalize(difference);
-                    posDelta -= normal * (2.0f - distance);
-                }
+                float2 normal = math.normalizesafe(difference);
+                posDelta -= normal * (2.0f - distance);
             }
 
             CoreData.UnitCurrPos[unitId] -= posDelta;
-        }
-
-        static int PushAwayFromEnemiesAndFindNearest(int unitId, Span<UnitModel> enemies)
-        {
-            float2 currPos = CoreData.UnitCurrPos[unitId];
-            float2 posDelta = float2.zero;
-
-            // on enemies calculate evasion as well as the nearest unit id
-            float distanceToNearest = float.MaxValue;
-            int nearestEnemyId = int.MinValue;
-            for (int i = 0; i < enemies.Length; i++)
-            {
-                ref UnitModel enemy = ref enemies[i];
-
-                if (enemy.Health <= 0)
-                    continue;
-
-                float2 enemyCurrPos = CoreData.UnitCurrPos[enemy.Id];
-                float distance = math.distance(currPos, enemyCurrPos);
-
-                // find nearest
-                if (distance < distanceToNearest)
-                {
-                    distanceToNearest = distance;
-                    nearestEnemyId = enemy.Id;
-                }
-
-                if (distance >= 2f)
-                    continue;
-
-                // calculating normal from 0,0 results in a NaN
-                float2 difference = currPos - enemyCurrPos;
-
-                // in case units are on the same spot we ignore the calculation to prevent error from happening
-                if (math.any(difference))
-                {
-                    float2 normal = math.normalize(difference);
-                    posDelta -= normal * (2.0f - distance);
-                }
-            }
-
-            CoreData.UnitCurrPos[unitId] -= posDelta;
-            return nearestEnemyId;
         }
 
         /// <summary>

@@ -16,8 +16,8 @@ MonoBehaviour:
   Color: {r: 0.16, g: 0.75, b: 0.26, a: 1}
   Units:
   - Name: Warrior
-    Amount: 100
+    Amount: 50
     Strategy: 0
   - Name: Archer
-    Amount: 100
+    Amount: 50
     Strategy: 0

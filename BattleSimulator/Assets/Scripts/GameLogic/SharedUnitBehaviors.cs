@@ -1,7 +1,9 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+using Codice.Client.Common;
 using Core;
 using Core.Models;
 using Unity.Mathematics;
+using Time = UnityEngine.Time;
 
 #if DEVELOPMENT_BUILD
 using UnityEngine.Assertions;
@@ -29,12 +31,12 @@ namespace GameLogic
             if (enemyArmyCenter.x < currPos.x)
             {
                 if (unit.AttackCooldown <= sharedData.CooldownDifference)
-                    CoreData.UnitCurrPos[unit.Id] += new float2(-1, 0) * sharedData.Speed;
+                    CoreData.UnitCurrPos[unit.Id] += new float2(-1, 0) * sharedData.Speed * Time.deltaTime;
             }
             else if (enemyArmyCenter.x > currPos.x)
             {
                 if (unit.AttackCooldown <= sharedData.CooldownDifference)
-                    CoreData.UnitCurrPos[unit.Id] += new float2(1, 0) * sharedData.Speed;
+                    CoreData.UnitCurrPos[unit.Id] += new float2(1, 0) * sharedData.Speed * Time.deltaTime;
             }
         }
     }

@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
+using Core.Enums;
 using Core.Models;
 
 namespace GameLogic.Interfaces
@@ -11,6 +12,8 @@ namespace GameLogic.Interfaces
         internal bool OneOrZeroArmiesLeft(out int numLeft);
 
         internal void UnitDied(int armyId);
+
+        internal Strategy GetStrategy(int armyId, int unitType);
 
         internal ref UnitModel GetUnit(int unitId);
 

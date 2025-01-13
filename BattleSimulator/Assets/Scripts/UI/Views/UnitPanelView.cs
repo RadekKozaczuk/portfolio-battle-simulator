@@ -1,7 +1,7 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using Core.Enums;
 using TMPro;
-using UI.Model;
+using UI.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +9,7 @@ namespace UI.Views
 {
     class UnitPanelView : MonoBehaviour
     {
-        internal UnitModel Model => new()
+        internal UnitData Data => new()
         {
             Amount = int.Parse(_amount.text),
             Strategy = (Strategy)_dropdown.value,
@@ -33,7 +33,7 @@ namespace UI.Views
             _slider.onValueChanged.AddListener(SliderAction);
         }
 
-        internal void Initialize(UnitModel unit)
+        internal void Initialize(UnitData unit)
         {
             _title.text = unit.Name;
             _slider.value = unit.Amount;

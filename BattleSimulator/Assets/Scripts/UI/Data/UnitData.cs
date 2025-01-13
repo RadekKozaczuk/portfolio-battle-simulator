@@ -3,10 +3,10 @@ using System;
 using Core.Enums;
 using UnityEngine;
 
-namespace UI.Model
+namespace UI.Data
 {
     [Serializable]
-    internal class UnitModel
+    internal class UnitData
     {
         [SerializeField]
         internal string Name;

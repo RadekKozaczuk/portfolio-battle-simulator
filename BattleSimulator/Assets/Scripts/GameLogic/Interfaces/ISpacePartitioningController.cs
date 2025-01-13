@@ -16,10 +16,6 @@ namespace GameLogic.Interfaces
         /// <summary>
         /// The returned list is pooled and should be returned in order to preserve memory.
         /// </summary>
-        /// <param name="position"></param>
-        /// <param name="exceptUnitId"></param>
-        /// <param name="maxDistance"></param>
-        /// <returns></returns>
         internal List<int> FindAllNearbyUnits(float2 position, int exceptUnitId, float maxDistance);
 
         internal void Release(List<int> list);

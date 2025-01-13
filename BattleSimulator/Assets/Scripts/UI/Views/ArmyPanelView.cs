@@ -8,7 +8,6 @@ using UI.Config;
 using UI.Data;
 using UnityEngine;
 using UnityEngine.UI;
-using UnitModel = UI.Model.UnitModel;
 
 namespace UI.Views
 {
@@ -22,10 +21,10 @@ namespace UI.Views
                 var unitAmounts = new List<int>();
                 var strategies = new List<Strategy>();
 
-                foreach (UnitModel model in _units.Select(unit => unit.Model))
+                foreach (UnitData data in _units.Select(unit => unit.Data))
                 {
-                    unitAmounts.Add(model.Amount);
-                    strategies.Add(model.Strategy);
+                    unitAmounts.Add(data.Amount);
+                    strategies.Add(data.Strategy);
                 }
 
                 return new ArmyModel(unitAmounts, strategies, Color.green);
@@ -44,10 +43,12 @@ namespace UI.Views
 
         internal void Initialize(ArmyData army)
         {
-            foreach (UnitModel unit in army.Units)
+            _title.text = army.Name;
+
+            foreach (UnitData data in army.Units)
             {
                 UnitPanelView panel = Instantiate(_config.UnitPanelPrefab, _container.transform);
-                panel.Initialize(unit);
+                panel.Initialize(data);
                 _units.Add(panel);
             }
         }

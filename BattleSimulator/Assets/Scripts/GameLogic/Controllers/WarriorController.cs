@@ -69,11 +69,11 @@ namespace GameLogic.Controllers
             float2 pos = CoreData.UnitCurrPos[model.Id];
             float2 enemyPos = CoreData.UnitCurrPos[enemyModel.Id];
             float2 difference = enemyPos - pos;
-            float2 dirToEnemy = math.normalize(difference);
 
-            // enemy and pos maybe the same and in such case normal would have been NaN so this check is needed
-            if (math.any(difference))
-                CoreData.UnitCurrPos[model.Id] += dirToEnemy * sharedData.Speed * GameLogicData.DeltaTime;
+            // have to use safe variant here as there is a 1 in a billion chance
+            // the enemy will be in the exact same spot resulting in NaN normal calculation error
+            float2 dirToEnemy = math.normalizesafe(difference);
+            CoreData.UnitCurrPos[model.Id] += dirToEnemy * sharedData.Speed * GameLogicData.DeltaTime;
 
             // Attack Logic
             if (model.AttackCooldown > 0)

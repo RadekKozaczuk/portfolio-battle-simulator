@@ -1,5 +1,5 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using UI.Model;
+using UI.Data;
 using UnityEngine;
 
 namespace UI.Data
@@ -14,6 +14,6 @@ namespace UI.Data
         internal Color Color;
 
         [SerializeField]
-        internal UnitModel[] Units;
+        internal UnitData[] Units;
     }
 }

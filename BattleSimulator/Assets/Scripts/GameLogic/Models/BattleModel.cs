@@ -1,6 +1,7 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using System.Collections.Generic;
+using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
 using UnityEngine.Assertions;
@@ -30,6 +31,8 @@ namespace GameLogic.Models
         /// By army.
         /// </summary>
         readonly int[] _aliveUnitCount;
+
+        readonly Strategy[] _strategies;
 
         internal BattleModel(List<ArmyModel> armies)
         {
@@ -85,6 +88,11 @@ namespace GameLogic.Models
                         _units[id] = new UnitModel(id, unitTypeId, armyId);
                         id++;
                     }
+
+            _strategies = new Strategy[_armyCount * _unitTypeCount];
+            for (int i = 0; i < _armyCount; i++)
+                for (int j = 0; j < _unitTypeCount; j++)
+                    _strategies[i * _armyCount + j] = armies[i].GetStrategy(j);
         }
 
         bool IBattleModel.OneOrZeroArmiesLeft(out int numLeft)
@@ -98,6 +106,8 @@ namespace GameLogic.Models
         }
 
         void IBattleModel.UnitDied(int armyId) => _aliveUnitCount[armyId]--;
+
+        Strategy IBattleModel.GetStrategy(int armyId, int unitType) => _strategies[armyId * _armyCount + unitType];
 
         ref UnitModel IBattleModel.GetUnit(int unitId) => ref _units[unitId];
 

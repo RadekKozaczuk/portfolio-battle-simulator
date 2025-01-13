@@ -144,7 +144,8 @@ namespace GameLogic.Controllers
 
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
-                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(Strategy.Basic); // todo: should be taken from the model
+                    Strategy strategy = _battleModel.GetStrategy(armyId, unitType);
+                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(strategy);
                     action(armyId, unitType, _battleModel);
                 }
             }

@@ -1,11 +1,16 @@
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#define CUSTOM_BUILD
+#endif
+
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using Core.Config;
 using Core.Services;
-using UnityEngine;
 using UnityEngine.Assertions;
+using Debug = UnityEngine.Debug;
 
 namespace Core
 {
@@ -37,9 +42,71 @@ namespace Core
         static readonly DebugConfig _config;
 #endif
 
-        internal static void Intercept(int signalId, string signalName, params object[] args)
+        internal static void Intercept(int signalId, string signalName)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2, object arg3)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2, object arg3, object arg4)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        }
+
+        internal static void Intercept(int signalId, string signalName,
+            object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
+        {
+            CommonPart(signalId, signalName);
+            SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        }
+
+        [Conditional("CUSTOM_BUILD")] // conditionals do not support compound conditions
+        static void CommonPart(int signalId, string signalName)
+        {
             Delegate reactMethods = SignalService.GetReactMethods(signalId);
             Delegate[] delegates = reactMethods.GetInvocationList();
 
@@ -49,7 +116,7 @@ namespace Core
                 string receivingName = targetAssembly.GetName().Name;
                 int receivingId = _lookup[receivingName];
 
-                MethodBase? method = new System.Diagnostics.StackTrace().GetFrame(3).GetMethod();
+                MethodBase? method = new StackTrace().GetFrame(3).GetMethod();
                 Assembly callingAssembly = method.DeclaringType!.Assembly;
                 string callingName = callingAssembly.GetName().Name;
 
@@ -61,7 +128,7 @@ namespace Core
                 else
                 {
                     // listener execution
-                    method = new System.Diagnostics.StackTrace().GetFrame(2).GetMethod();
+                    method = new StackTrace().GetFrame(2).GetMethod();
                     callingAssembly = method.DeclaringType!.Assembly;
                     callingName = callingAssembly.GetName().Name;
                 }
@@ -83,13 +150,14 @@ namespace Core
                     else
                         part = $".{method.Name}";
 
-                    for (int j = 0; j < args.Length; j++)
+                    // todo: bring back if possible
+                    /*for (int j = 0; j < args.Length; j++)
                     {
                         object obj = args[j];
                         if (j > 0)
                             part2 += ", ";
                         part2 += obj;
-                    }
+                    }*/
 
                     Debug.Log($"{signalName} was sent in: {method.DeclaringType.FullName}{part}, args: {part2}");
                 }
@@ -104,9 +172,6 @@ namespace Core
                     : $"Sending signals from {callingName} and receiving them in {receivingName} is not allowed. "
                       + $"If {callingName} assembly references {receivingName} please use normal calls (public methods are declared in ViewModels).";
             }
-#endif
-
-            SignalService.AddSignal(signalId, args);
         }
     }
 }

@@ -20,7 +20,6 @@ namespace Core.Services
     {
         readonly int _signalCount;
         static SignalService _instance;
-
         readonly string[] _signalNames;
 
         /// <summary>
@@ -28,7 +27,7 @@ namespace Core.Services
         /// Value: a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         ///     Important: a single delegate can be an aggregation of many methods. When invoked, the methods are called sequentially.
         /// </summary>
-        readonly Delegate[] _reactMethods;
+        readonly List<Delegate>?[] _reactMethods; // todo: maybe should be array or array as we should now the size ahead of time
 
         /// <summary>
         /// SignalName is a unique signal identifier.
@@ -38,13 +37,13 @@ namespace Core.Services
 
         /// <summary>
         /// This array stores signal runtime values for signals with parameters.
-        /// Each signal is represented by one or more queues depending on its parameters. For example, imagine we have two signals A and B.<br/>
-        /// A is parameterless and B has two parameters of type int and string.<br/>
-        /// null - Signal A (because parameterless signals are represented in this array as null)<br/>
-        /// Queue(int) - Signal B <br/>
-        /// Queue(string) - Signal B <br/>
-        /// First method/signal has no parameters and therefore is represented by a <see cref="null"/>.<br/>
-        /// Second method/signal has two parameters (<see cref="int"/> and <see cref="string"/>) and is represented by two queues with respective value types.
+        /// Each signal is represented by one or more queues depending on its parameters. For example, if you have a signal parameterless signal A
+        /// and signal B that has two parameters of type in and string then the queue will look like follows:<br/>
+        /// [0] = null - Signal A<br/>
+        /// [1] = Queue(int) - Signal B<br/>
+        /// [2] = Queue(string) - Signal B<br/>
+        /// First method/signal has no parameters and is represented by a null. Second method/signal has two parameters
+        /// (<see cref="int"/> and <see cref="string"/>) therefore is represented by two queues with respective value types.
         /// </summary>
         readonly Queue<object>?[] _signalQueues;
 
@@ -58,7 +57,7 @@ namespace Core.Services
         public SignalService(int signalCount, string[] signalNames, Queue<object>?[] signalQueues, Type reactAttribute)
         {
             _signalCount = signalCount;
-            _reactMethods = new Delegate[signalCount];
+            _reactMethods = new List<Delegate>[signalCount];
             _signalQueueLookup = new (int index, Type[] types)[signalCount];
             _signalQueues = signalQueues;
             _signalNames = signalNames;
@@ -104,7 +103,7 @@ namespace Core.Services
         /// Returns a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         /// Single delegate can be an aggregation of many methods. Such delegate, when invoked, calls the stored methods sequentially.
         /// </summary>
-        public static Delegate GetReactMethods(int id) => _instance._reactMethods[id];
+        public static List<Delegate> GetReactMethods(int id) => _instance._reactMethods[id]!;
 
         internal static void BindSignals(MethodInfo[] signals) => _instance.BindSignals_Internal(signals);
 
@@ -236,7 +235,7 @@ namespace Core.Services
 
                 if (firstQueue == null) // signal is parameterless
                 {
-                    _reactMethods[id].DynamicInvoke();
+                    _reactMethods[id]![0].DynamicInvoke();
                     continue;
                 }
 
@@ -251,7 +250,8 @@ namespace Core.Services
                     args[i] = Convert.ChangeType(value, types[i]);
                 }
 
-                _reactMethods[id].DynamicInvoke(args);
+                for (int i = 0; i < _reactMethods[id]!.Count; i++)
+                    _reactMethods[id]![i].DynamicInvoke(args);
             }
         }
 
@@ -309,10 +309,8 @@ namespace Core.Services
 
                 Assert.IsFalse(id == int.MinValue, "Could not find the signal.");
 
-                var del = Delegate.CreateDelegate(delegateType, method);
-
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                _reactMethods[id] = _reactMethods[id] == null ? del : Delegate.Combine(_reactMethods[id], del);
+                _reactMethods[id] ??= new List<Delegate>();
+                _reactMethods[id]!.Add(Delegate.CreateDelegate(delegateType, method));
             }
         }
     }

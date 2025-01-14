@@ -107,10 +107,9 @@ namespace Core
         [Conditional("CUSTOM_BUILD")] // conditionals do not support compound conditions
         static void CommonPart(int signalId, string signalName)
         {
-            Delegate reactMethods = SignalService.GetReactMethods(signalId);
-            Delegate[] delegates = reactMethods.GetInvocationList();
+            List<Delegate> reactMethods = SignalService.GetReactMethods(signalId);
 
-            foreach (Delegate d in delegates)
+            foreach (Delegate d in reactMethods)
             {
                 Assembly targetAssembly = d.Method.DeclaringType!.Assembly;
                 string receivingName = targetAssembly.GetName().Name;

@@ -132,93 +132,93 @@ namespace Core.Services
         void AddSignal_Internal(int id, object arg0)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
+            _signalQueues[index]!.Enqueue(arg0);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
-            _signalQueues[++queueIndex]!.Enqueue(arg3);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
-            _signalQueues[++queueIndex]!.Enqueue(arg3);
-            _signalQueues[++queueIndex]!.Enqueue(arg4);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
-            _signalQueues[++queueIndex]!.Enqueue(arg3);
-            _signalQueues[++queueIndex]!.Enqueue(arg4);
-            _signalQueues[++queueIndex]!.Enqueue(arg5);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
-            _signalQueues[++queueIndex]!.Enqueue(arg3);
-            _signalQueues[++queueIndex]!.Enqueue(arg4);
-            _signalQueues[++queueIndex]!.Enqueue(arg5);
-            _signalQueues[++queueIndex]!.Enqueue(arg6);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
+            _signalQueues[++index]!.Enqueue(arg6);
         }
 
         void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
         {
             _signals.Enqueue(id);
-            (int queueIndex, Type[] _) = _signalQueueLookup[id];
+            int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[queueIndex]!.Enqueue(arg0);
-            _signalQueues[++queueIndex]!.Enqueue(arg1);
-            _signalQueues[++queueIndex]!.Enqueue(arg2);
-            _signalQueues[++queueIndex]!.Enqueue(arg3);
-            _signalQueues[++queueIndex]!.Enqueue(arg4);
-            _signalQueues[++queueIndex]!.Enqueue(arg5);
-            _signalQueues[++queueIndex]!.Enqueue(arg6);
-            _signalQueues[++queueIndex]!.Enqueue(arg7);
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
+            _signalQueues[++index]!.Enqueue(arg6);
+            _signalQueues[++index]!.Enqueue(arg7);
         }
 
         /// <summary>

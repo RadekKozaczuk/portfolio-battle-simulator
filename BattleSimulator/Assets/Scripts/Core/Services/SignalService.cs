@@ -1,4 +1,4 @@
-﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -20,7 +20,6 @@ namespace Core.Services
     {
         readonly int _signalCount;
         static SignalService _instance;
-
         readonly string[] _signalNames;
 
         /// <summary>
@@ -28,7 +27,7 @@ namespace Core.Services
         /// Value: a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         ///     Important: a single delegate can be an aggregation of many methods. When invoked, the methods are called sequentially.
         /// </summary>
-        readonly Delegate[] _reactMethods;
+        readonly List<Delegate>?[] _reactMethods; // todo: maybe should be array or array as we should now the size ahead of time
 
         /// <summary>
         /// SignalName is a unique signal identifier.
@@ -38,13 +37,13 @@ namespace Core.Services
 
         /// <summary>
         /// This array stores signal runtime values for signals with parameters.
-        /// Each signal can be represented by one or more queses depending on its parameters.
-        /// For example, imagine we have two signals A and B. A is parameterless and B has two parameters of type int and string. <br/>
-        /// null - Signal A (because parameterless signals are represented in this array as null)<br/>
-        /// Queue(int) - Signal B <br/>
-        /// Queue(string) - Signal B <br/><br/>
-        /// First method/signal has no parameters and therefore is represented by one queue with boolean values in it. <br/>
-        /// Second method/signal has two parameters (int and string) and is represented by two queues with respective value types.
+        /// Each signal is represented by one or more queues depending on its parameters. For example, if you have a signal parameterless signal A
+        /// and signal B that has two parameters of type in and string then the queue will look like follows:<br/>
+        /// [0] = null - Signal A<br/>
+        /// [1] = Queue(int) - Signal B<br/>
+        /// [2] = Queue(string) - Signal B<br/>
+        /// First method/signal has no parameters and is represented by a null. Second method/signal has two parameters
+        /// (<see cref="int"/> and <see cref="string"/>) therefore is represented by two queues with respective value types.
         /// </summary>
         readonly Queue<object>?[] _signalQueues;
 
@@ -58,7 +57,7 @@ namespace Core.Services
         public SignalService(int signalCount, string[] signalNames, Queue<object>?[] signalQueues, Type reactAttribute)
         {
             _signalCount = signalCount;
-            _reactMethods = new Delegate[signalCount];
+            _reactMethods = new List<Delegate>[signalCount];
             _signalQueueLookup = new (int index, Type[] types)[signalCount];
             _signalQueues = signalQueues;
             _signalNames = signalNames;
@@ -71,7 +70,32 @@ namespace Core.Services
             _instance = this;
         }
 
-        public static void AddSignal(int id, object[] args) => _instance.AddSignal_Internal(id, args);
+        public static void AddSignal(int id) =>
+            _instance.AddSignal_Internal(id);
+
+        public static void AddSignal(int id, object arg0) =>
+            _instance.AddSignal_Internal(id, arg0);
+
+        public static void AddSignal(int id, object arg0, object arg1) =>
+            _instance.AddSignal_Internal(id, arg0, arg1);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+
+        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7) =>
+            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 
         public static void ExecuteSentSignals() => _instance.ExecuteSentSignals_Internal();
 
@@ -79,7 +103,7 @@ namespace Core.Services
         /// Returns a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         /// Single delegate can be an aggregation of many methods. Such delegate, when invoked, calls the stored methods sequentially.
         /// </summary>
-        public static Delegate GetReactMethods(int id) => _instance._reactMethods[id];
+        public static List<Delegate> GetReactMethods(int id) => _instance._reactMethods[id]!;
 
         internal static void BindSignals(MethodInfo[] signals) => _instance.BindSignals_Internal(signals);
 
@@ -99,17 +123,101 @@ namespace Core.Services
         /// Add new signal to the queue.
         /// All signals will be executed in FIFO (first-in-first-out) order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, IReadOnlyList<object> args)
+        void AddSignal_Internal(int id)
         {
             _signals.Enqueue(id);
+        }
 
-            if (args.Count <= 0)
-                return;
+        void AddSignal_Internal(int id, object arg0)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
 
-            (int queueIndex, Type[] types) = _signalQueueLookup[id];
+            _signalQueues[index]!.Enqueue(arg0);
+        }
 
-            for (int i = 0; i < types.Length; i++)
-                _signalQueues[queueIndex + i]!.Enqueue(args[i]);
+        void AddSignal_Internal(int id, object arg0, object arg1)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
+            _signalQueues[++index]!.Enqueue(arg6);
+        }
+
+        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
+        {
+            _signals.Enqueue(id);
+            int index = _signalQueueLookup[id].queueIndex;
+
+            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[++index]!.Enqueue(arg5);
+            _signalQueues[++index]!.Enqueue(arg6);
+            _signalQueues[++index]!.Enqueue(arg7);
         }
 
         /// <summary>
@@ -127,7 +235,7 @@ namespace Core.Services
 
                 if (firstQueue == null) // signal is parameterless
                 {
-                    _reactMethods[id].DynamicInvoke();
+                    _reactMethods[id]![0].DynamicInvoke();
                     continue;
                 }
 
@@ -142,7 +250,8 @@ namespace Core.Services
                     args[i] = Convert.ChangeType(value, types[i]);
                 }
 
-                _reactMethods[id].DynamicInvoke(args);
+                for (int i = 0; i < _reactMethods[id]!.Count; i++)
+                    _reactMethods[id]![i].DynamicInvoke(args);
             }
         }
 
@@ -200,10 +309,8 @@ namespace Core.Services
 
                 Assert.IsFalse(id == int.MinValue, "Could not find the signal.");
 
-                var del = Delegate.CreateDelegate(delegateType, method);
-
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                _reactMethods[id] = _reactMethods[id] == null ? del : Delegate.Combine(_reactMethods[id], del);
+                _reactMethods[id] ??= new List<Delegate>();
+                _reactMethods[id]!.Add(Delegate.CreateDelegate(delegateType, method));
             }
         }
     }

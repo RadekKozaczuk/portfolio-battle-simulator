@@ -6,12 +6,14 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
+using Core.Services;
+using GameLogic.Interfaces;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
 {
     [UsedImplicitly]
-    public class GameLogicViewModel
+    public class GameLogicViewModel // todo: why aren't ViewModels static?
     {
         [Inject]
         static readonly GameLogicMainController _mainController;
@@ -25,7 +27,11 @@ namespace GameLogic.ViewModels
             PresentationViewModel.CustomUpdate();
         }
 
-        public static void BootingOnExit() { }
+        public static void BootingOnExit()
+        {
+            ArchitectureService.Bind<IUnitController>(typeof(WarriorController));
+            ArchitectureService.Bind<IUnitController>(typeof(ArcherController));
+        }
 
         public static void MainMenuOnEntry() { }
 

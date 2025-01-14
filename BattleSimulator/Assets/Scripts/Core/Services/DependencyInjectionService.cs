@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Core.Interfaces;
 using JetBrains.Annotations;
+using UnityEngine.Assertions;
 
 namespace Core.Services
 {
@@ -131,22 +132,14 @@ namespace Core.Services
                         ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
 
                         if (constructors.Length == 0)
-                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve]");
+                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
 
-                        try
-                        {
-                            object instance = constructors[0].Invoke(new object[] { });
-                            AddDependencyUnit(type, instance);
-                            SignalService.AddReactiveInstantiatable(instance);
+                        object instance = constructors[0].Invoke(new object[] { });
+                        AddDependencyUnit(type, instance);
+                        SignalService.AddReactiveInstantiatable(instance);
 
-                            if (typeof(IInitializable).IsAssignableFrom(type))
-                                _initializables.Add((IInitializable)instance);
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                            throw;
-                        }
+                        if (typeof(IInitializable).IsAssignableFrom(type))
+                            _initializables.Add((IInitializable)instance);
                     }
                 }
 
@@ -162,11 +155,25 @@ namespace Core.Services
             }
         }
 
+        static readonly Dictionary<Type, List<Type>> _bindings = new();
+
+        public static void Bind<T>(Type type)
+        {
+            Assert.IsTrue(typeof(T).IsInterface, "The generic type parameter {typeof(T).Name} must be an interface.");
+
+            if (_bindings.TryGetValue(typeof(T), out List<Type> list))
+            {
+                Assert.IsFalse(list.Contains(type), "Binding the same element twice is not allowed.");
+                list.Add(type);
+            }
+            else
+                _bindings.Add(typeof(T), new List<Type> {type});
+        }
+
         /// <summary>
         /// Initialization invoke must be done on a different frame as injected fields (for example configs)
         /// will not be accessible if accessed on the same frame.
         /// </summary>
-        [UsedImplicitly]
         public static void InvokeInitialization()
         {
             foreach (IInitializable instance in _initializables)

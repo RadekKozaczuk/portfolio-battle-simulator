@@ -38,6 +38,7 @@ namespace Boot
         {
             // increase priority so that main menu can appear faster
             Application.backgroundLoadingPriority = ThreadPriority.High;
+
             // injection must be done in awake because fields cannot be injected into in the same method they are used in
             // start will be at least 1 frame later than Awake.
             ArchitectureService.Initialize(SignalProcessorPrecalculatedArrays.SignalCount,

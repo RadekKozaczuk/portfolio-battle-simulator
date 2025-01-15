@@ -107,6 +107,8 @@ namespace Core
         [Conditional("CUSTOM_BUILD")] // conditionals do not support compound conditions
         static void CommonPart(int signalId, string signalName)
         {
+            // todo: should cache results 
+
             List<Delegate> reactMethods = SignalService.GetReactMethods(signalId);
 
             foreach (Delegate d in reactMethods)

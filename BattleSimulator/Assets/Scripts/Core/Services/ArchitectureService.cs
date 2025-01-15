@@ -23,26 +23,10 @@ namespace Core.Services
         /// Starts dependency injection and debug commands initialization.
         /// Tapping delay is used only when the game is build on mobile devices and tells how fast player has to tap to open the debug console.
         /// </summary>
-        public static void InitializeA()
-        {
-#if UNITY_EDITOR
-            CodeValidationService.Validate();
-#endif
-
-            // instance disposed as the object is a singleton
-            _ = new SignalService(typeof(ReactAttribute));
-        }
-
-        /// <summary>
-        /// Starts dependency injection and debug commands initialization.
-        /// Tapping delay is used only when the game is build on mobile devices and tells how fast player has to tap to open the debug console.
-        /// </summary>
-        public static void InitializeB()
+        public static void Inject()
         {
             DependencyInjectionService<ScriptableObject>.Inject(FindConfig);
         }
-
-        public static void ResolveBinding() => DependencyInjectionService<ScriptableObject>.ResolveBindings();
 
         /// <summary>
         /// Binds Controller/ViewModel to an interface. You can bind one or more types to the same interface.

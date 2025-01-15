@@ -16,11 +16,10 @@ namespace Core.Services
     /// all the original signals had been processed. <br/>
     /// <i>Warning: Sending a signal without a corresponding React method will result in an error.</i>
     /// </summary>
-    public class SignalService
+    public static class SignalService
     {
         const int SignalCount = SignalProcessorPrecalculatedArrays.SignalCount;
-        static SignalService _instance;
-        readonly string[] _signalNames = SignalProcessorPrecalculatedArrays.SignalNames;
+        static readonly string[] _signalNames = SignalProcessorPrecalculatedArrays.SignalNames;
 
         // todo: maybe should be array or array as we should now the size ahead of time
         /// <summary>
@@ -28,13 +27,13 @@ namespace Core.Services
         /// Value: a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         ///     Important: a single delegate can be an aggregation of many methods. When invoked, the methods are called sequentially.
         /// </summary>
-        readonly List<Delegate>[] _reactMethods = new List<Delegate>[SignalProcessorPrecalculatedArrays.SignalCount];
+        static readonly List<Delegate>[] _reactMethods = new List<Delegate>[SignalProcessorPrecalculatedArrays.SignalCount];
 
         /// <summary>
         /// SignalName is a unique signal identifier.
         /// Index is the index in the <see cref="_signalQueues"/> array that points at the corresponding queue.
         /// </summary>
-        readonly (int queueIndex, Type[] types)[] _signalQueueLookup;
+        static (int queueIndex, Type[] types)[] _signalQueueLookup;
 
         /// <summary>
         /// This array stores signal runtime values for signals with parameters.
@@ -46,16 +45,16 @@ namespace Core.Services
         /// First method/signal has no parameters and is represented by a null. Second method/signal has two parameters
         /// (<see cref="int"/> and <see cref="string"/>) therefore is represented by two queues with respective value types.
         /// </summary>
-        readonly Queue<object>[] _signalQueues = SignalProcessorPrecalculatedArrays.SignalQueues!; // todo: get rid of nullability
+        static readonly Queue<object>[] _signalQueues = SignalProcessorPrecalculatedArrays.SignalQueues!; // todo: get rid of nullability
 
         /// <summary>
         /// Each time a new signal is called, its ID is added here.
         /// </summary>
-        readonly Queue<int> _signals = new();
+        static readonly Queue<int> _signals = new();
 
-        readonly Type _reactAttribute;
+        static Type _reactAttribute;
 
-        public SignalService(Type reactAttribute)
+        public static void Initialize(Type reactAttribute)
         {
             _signalQueueLookup = new (int index, Type[] types)[SignalCount];
 
@@ -63,51 +62,15 @@ namespace Core.Services
                 _reactMethods[i] = new List<Delegate>();
 
             _reactAttribute = reactAttribute;
-
-            if (_instance != null)
-                throw new Exception("There should be only once instance of SignalProcessor.");
-
-            _instance = this;
         }
-
-#region AddSignal
-        public static void AddSignal(int id) =>
-            _instance.AddSignal_Internal(id);
-
-        public static void AddSignal(int id, object arg0) =>
-            _instance.AddSignal_Internal(id, arg0);
-
-        public static void AddSignal(int id, object arg0, object arg1) =>
-            _instance.AddSignal_Internal(id, arg0, arg1);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-
-        public static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7) =>
-            _instance.AddSignal_Internal(id, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-#endregion
-
-        public static void ExecuteSentSignals() => _instance.ExecuteSentSignals_Internal();
 
         /// <summary>
         /// Returns a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
         /// Single delegate can be an aggregation of many methods. Such delegate, when invoked, calls the stored methods sequentially.
         /// </summary>
-        public static List<Delegate> GetReactMethods(int id) => _instance._reactMethods[id];
+        public static List<Delegate> GetReactMethods(int id) => _reactMethods[id];
 
-        internal static void BindSignals(MethodInfo[] signals) => _instance.BindSignals_Internal(signals);
+        internal static void BindSignals(MethodInfo[] signals) => BindSignals_Internal(signals);
 
         /// <summary>
         /// Adds instantiatable (controller, reference holder, or viewmodel) that has reactive methods (decorated with <see cref="ReactAttribute"/>).
@@ -115,25 +78,25 @@ namespace Core.Services
         internal static void AddReactiveInstantiatable(object instance)
         {
             MethodInfo[] methods = instance.GetType().GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Instance);
-            _instance.BindReactiveMethods(methods);
+            BindReactiveMethods(methods);
         }
 
         /// <summary>
         /// Adds a static class that has reactive methods (decorated with <see cref="ReactAttribute"/>).
         /// </summary>
         internal static void AddReactiveSystem(Type system) =>
-            _instance.BindReactiveMethods(system.GetMethods(BindingFlags.NonPublic | BindingFlags.Static));
+            BindReactiveMethods(system.GetMethods(BindingFlags.NonPublic | BindingFlags.Static));
 
 #region AddSignal_Internal
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id) => _signals.Enqueue(id);
+        internal static void AddSignal(int id) => _signals.Enqueue(id);
 
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0)
+        internal static void AddSignal(int id, object arg0)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -144,7 +107,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1)
+        internal static void AddSignal(int id, object arg0, object arg1)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -156,7 +119,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -169,7 +132,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -183,7 +146,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -198,7 +161,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -214,7 +177,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -231,7 +194,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a new signal to the queue. Signals will be executed in First-In-First-Out order when <see cref="ExecuteSentSignals"/> is called.
         /// </summary>
-        void AddSignal_Internal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
+        internal static void AddSignal(int id, object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
         {
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
@@ -250,7 +213,7 @@ namespace Core.Services
         /// <summary>
         /// Process and execute all signals sent. Should be called only once per frame.
         /// </summary>
-        void ExecuteSentSignals_Internal()
+        internal static void ExecuteSentSignals()
         {
             // go through signals one by one
             while (_signals.Count > 0)
@@ -282,7 +245,7 @@ namespace Core.Services
             }
         }
 
-        void BindSignals_Internal(IReadOnlyList<MethodInfo> signals)
+        static void BindSignals_Internal(IReadOnlyList<MethodInfo> signals)
         {
             int queueIndex = 0;
 
@@ -306,7 +269,7 @@ namespace Core.Services
             }
         }
 
-        void BindReactiveMethods(IReadOnlyList<MethodInfo> methods)
+        static void BindReactiveMethods(IReadOnlyList<MethodInfo> methods)
         {
             foreach (MethodInfo method in methods)
             {

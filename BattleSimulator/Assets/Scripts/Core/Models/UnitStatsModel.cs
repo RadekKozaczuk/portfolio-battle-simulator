@@ -1,8 +1,5 @@
 ﻿namespace Core.Models
 {
-    /// <summary>
-    /// 
-    /// </summary>
     public readonly struct UnitStatsModel
     {
         public readonly int Health;

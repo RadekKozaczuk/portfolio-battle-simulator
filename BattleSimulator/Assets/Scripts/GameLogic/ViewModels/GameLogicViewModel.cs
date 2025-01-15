@@ -6,6 +6,8 @@ using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
 using Core.Models;
+using Core.Services;
+using GameLogic.Interfaces;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
@@ -37,5 +39,11 @@ namespace GameLogic.ViewModels
 
         public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones) =>
             _mainController.InitializeModel(armies, spawnZones);
+
+        public static void BindControllers()
+        {
+            ArchitectureService.BindToInterface<IUnitController>(typeof(WarriorController));
+            ArchitectureService.BindToInterface<IUnitController>(typeof(ArcherController));
+        }
     }
 }

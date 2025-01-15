@@ -21,13 +21,6 @@ namespace Core.Services
 #endif
 
         /// <summary>
-        /// Null - no preloading requested.
-        /// False - is preloading but not yet finished.
-        /// True - finished preloading.
-        /// </summary>
-        bool? _finishedPreLoading;
-
-        /// <summary>
         /// Can only be changed to true if machine is preloading.
         /// </summary>
         bool _finalizeTransitionRequest;

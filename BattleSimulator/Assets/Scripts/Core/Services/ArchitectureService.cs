@@ -23,18 +23,36 @@ namespace Core.Services
         /// Starts dependency injection and debug commands initialization.
         /// Tapping delay is used only when the game is build on mobile devices and tells how fast player has to tap to open the debug console.
         /// </summary>
-        public static void Initialize(int signalCount, string[] signalNames, Queue<object>?[] signalQueues)
+        public static void InitializeA()
         {
 #if UNITY_EDITOR
             CodeValidationService.Validate();
 #endif
 
             // instance disposed as the object is a singleton
-            _ = new SignalService(signalCount, signalNames, signalQueues, typeof(ReactAttribute));
+            _ = new SignalService(typeof(ReactAttribute));
+        }
+
+        /// <summary>
+        /// Starts dependency injection and debug commands initialization.
+        /// Tapping delay is used only when the game is build on mobile devices and tells how fast player has to tap to open the debug console.
+        /// </summary>
+        public static void InitializeB()
+        {
             DependencyInjectionService<ScriptableObject>.Inject(FindConfig);
         }
 
-        public static void Bind<T>(Type type) => DependencyInjectionService<ScriptableObject>.Bind<T>(type);
+        public static void ResolveBinding() => DependencyInjectionService<ScriptableObject>.ResolveBindings();
+
+        /// <summary>
+        /// Binds Controller/ViewModel to an interface. You can bind one or more types to the same interface.
+        /// In case of more types than one the field must be an array or a list.
+        /// Injects in that list will be in the same order they were bound.
+        /// </summary>
+        /// <param name="type">The type of the controller or the viewmodel you want to associate (bind) with the interface.
+        /// Must implement the interface.</param>
+        /// <typeparam name="T">Type of the interface you want to bind to</typeparam>
+        public static void BindToInterface<T>(Type type) => DependencyInjectionService<ScriptableObject>.BindToInterface<T>(type);
 
 #region Intercept
         /// <summary>

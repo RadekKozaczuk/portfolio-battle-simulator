@@ -29,13 +29,10 @@ namespace GameLogic.Controllers
     /// being too long to comprehend. We also do not want to react on signals in viewmodels for the exact same reason.<br/>
     /// </summary>
     [UsedImplicitly]
-    class GameLogicMainController : IInitializable, ICustomUpdate
+    class GameLogicMainController : ICustomUpdate
     {
         [Inject]
-        static readonly IUnitController _warriorController;
-
-        [Inject]
-        static readonly IUnitController _archerController;
+        static readonly IUnitController[] _unitControllers;
 
         [Inject]
         static readonly UpdateArmyCenterController _updateArmyCenterController;
@@ -44,13 +41,6 @@ namespace GameLogic.Controllers
         static readonly InitializeBattleModelController _battleModelController;
 
         ISpacePartitioningController _spacePartitioningController;
-
-        //[Inject]
-        //static readonly ISpacePartitioningController _spacePartitioningController;
-
-        // todo: should be possible to inject directly
-        readonly IUnitController[] _unitControllers = new IUnitController[2];
-
         IBattleModel _battleModel;
         Action<int>[] _behaviours;
         ProjectileModel[] _projectiles = new ProjectileModel[2];
@@ -59,23 +49,15 @@ namespace GameLogic.Controllers
         [Preserve]
         GameLogicMainController() { }
 
-        public void Initialize()
-        {
-            _unitControllers[0] = _warriorController;
-            _unitControllers[1] = _archerController;
-        }
-
         public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
         {
-            IBattleModel model = new BattleModel(armies);
-            _battleModel = model;
+            _battleModel = new BattleModel(armies);
             _updateArmyCenterController.Initialize(_battleModel);
-            _battleModelController.InitializeModel(model, spawnZones);
+            _battleModelController.InitializeModel(_battleModel, spawnZones);
 
             Span<UnitModel> units = _battleModel.GetUnits();
 
-            Vector3 center = Vector3.zero;
-            var bounds = new Bounds(center, new Vector3(100, 1, 100));
+            var bounds = new Bounds(Vector3.zero, new Vector3(100, 1, 100));
             _spacePartitioningController = new SpacePartitioningController(bounds, 8, units.Length);
 
             for (int i = 0; i < units.Length; i++)

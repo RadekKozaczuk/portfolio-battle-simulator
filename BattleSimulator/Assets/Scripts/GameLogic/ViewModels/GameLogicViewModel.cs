@@ -27,11 +27,7 @@ namespace GameLogic.ViewModels
             PresentationViewModel.CustomUpdate();
         }
 
-        public static void BootingOnExit()
-        {
-            ArchitectureService.Bind<IUnitController>(typeof(WarriorController));
-            ArchitectureService.Bind<IUnitController>(typeof(ArcherController));
-        }
+        public static void BootingOnExit() { }
 
         public static void MainMenuOnEntry() { }
 
@@ -43,5 +39,11 @@ namespace GameLogic.ViewModels
 
         public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones) =>
             _mainController.InitializeModel(armies, spawnZones);
+
+        public static void BindControllers()
+        {
+            ArchitectureService.BindToInterface<IUnitController>(typeof(WarriorController));
+            ArchitectureService.BindToInterface<IUnitController>(typeof(ArcherController));
+        }
     }
 }

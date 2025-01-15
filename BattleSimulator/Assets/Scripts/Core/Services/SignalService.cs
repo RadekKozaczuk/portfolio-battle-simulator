@@ -18,9 +18,9 @@ namespace Core.Services
     /// </summary>
     public class SignalService
     {
-        readonly int _signalCount;
+        const int SignalCount = SignalProcessorPrecalculatedArrays.SignalCount;
         static SignalService _instance;
-        readonly string[] _signalNames;
+        readonly string[] _signalNames = SignalProcessorPrecalculatedArrays.SignalNames;
 
         // todo: maybe should be array or array as we should now the size ahead of time
         /// <summary>
@@ -46,7 +46,7 @@ namespace Core.Services
         /// First method/signal has no parameters and is represented by a null. Second method/signal has two parameters
         /// (<see cref="int"/> and <see cref="string"/>) therefore is represented by two queues with respective value types.
         /// </summary>
-        readonly Queue<object>?[] _signalQueues;
+        readonly Queue<object>[] _signalQueues = SignalProcessorPrecalculatedArrays.SignalQueues!; // todo: get rid of nullability
 
         /// <summary>
         /// Each time a new signal is called, its ID is added here.
@@ -55,12 +55,9 @@ namespace Core.Services
 
         readonly Type _reactAttribute;
 
-        public SignalService(int signalCount, string[] signalNames, Queue<object>?[] signalQueues, Type reactAttribute)
+        public SignalService(Type reactAttribute)
         {
-            _signalCount = signalCount;
-            _signalQueueLookup = new (int index, Type[] types)[signalCount];
-            _signalQueues = signalQueues;
-            _signalNames = signalNames;
+            _signalQueueLookup = new (int index, Type[] types)[SignalCount];
 
             for (int i = 0; i < SignalProcessorPrecalculatedArrays.SignalCount; i++)
                 _reactMethods[i] = new List<Delegate>();
@@ -115,8 +112,11 @@ namespace Core.Services
         /// <summary>
         /// Adds instantiatable (controller, reference holder, or viewmodel) that has reactive methods (decorated with <see cref="ReactAttribute"/>).
         /// </summary>
-        internal static void AddReactiveInstantiatable(object instance) =>
-            _instance.BindReactiveMethods(instance.GetType().GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Instance));
+        internal static void AddReactiveInstantiatable(object instance)
+        {
+            MethodInfo[] methods = instance.GetType().GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Instance);
+            _instance.BindReactiveMethods(methods);
+        }
 
         /// <summary>
         /// Adds a static class that has reactive methods (decorated with <see cref="ReactAttribute"/>).
@@ -138,7 +138,7 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
+            _signalQueues[index].Enqueue(arg0);
         }
 
         /// <summary>
@@ -149,8 +149,8 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
         }
 
         /// <summary>
@@ -161,9 +161,9 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
         }
 
         /// <summary>
@@ -174,10 +174,10 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
-            _signalQueues[++index]!.Enqueue(arg3);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
+            _signalQueues[++index].Enqueue(arg3);
         }
 
         /// <summary>
@@ -188,11 +188,11 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
-            _signalQueues[++index]!.Enqueue(arg3);
-            _signalQueues[++index]!.Enqueue(arg4);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
+            _signalQueues[++index].Enqueue(arg3);
+            _signalQueues[++index].Enqueue(arg4);
         }
 
         /// <summary>
@@ -203,12 +203,12 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
-            _signalQueues[++index]!.Enqueue(arg3);
-            _signalQueues[++index]!.Enqueue(arg4);
-            _signalQueues[++index]!.Enqueue(arg5);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
+            _signalQueues[++index].Enqueue(arg3);
+            _signalQueues[++index].Enqueue(arg4);
+            _signalQueues[++index].Enqueue(arg5);
         }
 
         /// <summary>
@@ -219,13 +219,13 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
-            _signalQueues[++index]!.Enqueue(arg3);
-            _signalQueues[++index]!.Enqueue(arg4);
-            _signalQueues[++index]!.Enqueue(arg5);
-            _signalQueues[++index]!.Enqueue(arg6);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
+            _signalQueues[++index].Enqueue(arg3);
+            _signalQueues[++index].Enqueue(arg4);
+            _signalQueues[++index].Enqueue(arg5);
+            _signalQueues[++index].Enqueue(arg6);
         }
 
         /// <summary>
@@ -236,14 +236,14 @@ namespace Core.Services
             _signals.Enqueue(id);
             int index = _signalQueueLookup[id].queueIndex;
 
-            _signalQueues[index]!.Enqueue(arg0);
-            _signalQueues[++index]!.Enqueue(arg1);
-            _signalQueues[++index]!.Enqueue(arg2);
-            _signalQueues[++index]!.Enqueue(arg3);
-            _signalQueues[++index]!.Enqueue(arg4);
-            _signalQueues[++index]!.Enqueue(arg5);
-            _signalQueues[++index]!.Enqueue(arg6);
-            _signalQueues[++index]!.Enqueue(arg7);
+            _signalQueues[index].Enqueue(arg0);
+            _signalQueues[++index].Enqueue(arg1);
+            _signalQueues[++index].Enqueue(arg2);
+            _signalQueues[++index].Enqueue(arg3);
+            _signalQueues[++index].Enqueue(arg4);
+            _signalQueues[++index].Enqueue(arg5);
+            _signalQueues[++index].Enqueue(arg6);
+            _signalQueues[++index].Enqueue(arg7);
         }
 #endregion
 
@@ -258,9 +258,9 @@ namespace Core.Services
                 int id = _signals.Dequeue();
 
                 (int queueIndex, Type[] types) = _signalQueueLookup[id];
-                Queue<object>? firstQueue = _signalQueues[queueIndex];
+                Queue<object> firstQueue = _signalQueues[queueIndex];
 
-                if (firstQueue == null) // signal is parameterless
+                if (types.Length == 0) // signal is parameterless
                 {
                     _reactMethods[id][0].DynamicInvoke();
                     continue;
@@ -273,7 +273,7 @@ namespace Core.Services
 
                 for (int i = 1; i < types.Length; i++)
                 {
-                    value = _signalQueues[queueIndex + i]!.Dequeue();
+                    value = _signalQueues[queueIndex + i].Dequeue();
                     args[i] = Convert.ChangeType(value, types[i]);
                 }
 
@@ -327,7 +327,7 @@ namespace Core.Services
                 Type delegateType = Expression.GetActionType(types);
 
                 int id = int.MinValue;
-                for (int j = 0; j < _signalCount; j++)
+                for (int j = 0; j < SignalCount; j++)
                     if (_signalNames[j] == name)
                     {
                         id = j;

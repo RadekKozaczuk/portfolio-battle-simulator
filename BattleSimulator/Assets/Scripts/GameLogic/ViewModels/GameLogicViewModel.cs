@@ -13,7 +13,7 @@ using UnityEngine;
 namespace GameLogic.ViewModels
 {
     [UsedImplicitly]
-    public class GameLogicViewModel // todo: why aren't ViewModels static?
+    public class GameLogicViewModel
     {
         [Inject]
         static readonly GameLogicMainController _mainController;

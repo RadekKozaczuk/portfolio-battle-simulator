@@ -303,7 +303,7 @@ namespace Core.Services
                 // Check if signals are in alphabetical order
                 if (i < signals.Length - 1 && StringComparer.OrdinalIgnoreCase.Compare(signals[i].Name, signals[i + 1].Name) > 0)
                     Debug.LogError($"Signal \"{signals[i + 1].Name}\" is defined after \"{signals[i].Name}\" "
-                                   + "which don't match alphabetical order");
+                                   + "which don't match alphabetical order. Signals should be defined alphabetically for better readability.");
 
                 // Check if every signal is used
                 if (!usedSignals.Contains(signals[i].Name))

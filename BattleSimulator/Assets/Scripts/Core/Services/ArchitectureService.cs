@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions;
+// ReSharper disable UnusedMember.Global
 
 namespace Core.Services
 {
@@ -27,16 +28,6 @@ namespace Core.Services
         {
             DependencyInjectionService<ScriptableObject>.Inject(FindConfig);
         }
-
-        /// <summary>
-        /// Binds Controller/ViewModel to an interface. You can bind one or more types to the same interface.
-        /// In case of more types than one the field must be an array or a list.
-        /// Injects in that list will be in the same order they were bound.
-        /// </summary>
-        /// <param name="type">The type of the controller or the viewmodel you want to associate (bind) with the interface.
-        /// Must implement the interface.</param>
-        /// <typeparam name="T">Type of the interface you want to bind to</typeparam>
-        public static void BindToInterface<T>(Type type) => DependencyInjectionService<ScriptableObject>.BindToInterface<T>(type);
 
 #region Intercept
         /// <summary>
@@ -102,9 +93,6 @@ namespace Core.Services
             SignalDispatch.Intercept(signalId, methodName, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 #endregion
 
-        /// <summary>
-        /// Should be invoked at least one frame later than <see cref="Initialize"/>.
-        /// </summary>
         public static void InvokeInitialization() => DependencyInjectionService<ScriptableObject>.InvokeInitialization();
 
         /// <summary>

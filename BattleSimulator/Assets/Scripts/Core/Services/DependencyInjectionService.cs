@@ -18,15 +18,16 @@ namespace Core.Services
         /// <summary>
         /// Key is a controller/view-model's type. Value is the instance.
         /// </summary>
-        static readonly Dictionary<Type, object> _instances = new(); // todo: this is annoying
+        // ReSharper disable once StaticMemberInGenericType
+        static readonly Dictionary<Type, object> _instances = new();
 
         // ReSharper disable once StaticMemberInGenericType
-        // ReSharper disable once IdentifierTypo
         static readonly List<IInitializable> _initializables = new();
 
         /// <summary>
         /// Key is an interface. Value is a list of types that binds with that interface.
         /// </summary>
+        // ReSharper disable once StaticMemberInGenericType
         static readonly Dictionary<Type, List<Type>> _interfaceBindings = new();
 
         public static void Inject(Func<Type, TScriptableObject?> findConfig, List<string>? additionalAssemblies = null)
@@ -52,9 +53,13 @@ namespace Core.Services
         }
 
         /// <summary>
-        /// Pairs interface with a type so that <see cref="DependencyInjectionService{TScriptableObject}"/> knows what to inject.
-        /// Binding the same type twice results in an error, however you can bind many types to the same interface.
+        /// Binds Controller/ViewModel to an interface. You can bind one or more types to the same interface.
+        /// In case of more types than one the field must be an array or a list.
+        /// Injects in that list will be in the same order they were bound.
         /// </summary>
+        /// <param name="type">The type of the controller or the viewmodel you want to associate (bind) with the interface.
+        /// Must implement the interface.</param>
+        /// <typeparam name="T">Type of the interface you want to bind to</typeparam>
         public static void BindToInterface<T>(Type type)
         {
             Assert.IsTrue(typeof(T).IsInterface, "The generic type parameter {typeof(T).Name} must be an interface.");
@@ -153,7 +158,9 @@ namespace Core.Services
                         }
                         else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
                         {
-                            if (!_interfaceBindings.TryGetValue(fieldType, out List<Type> types))
+                            Type elementType = fieldType.GetGenericArguments()[0];
+
+                            if (!_interfaceBindings.TryGetValue(elementType, out List<Type> types))
                                 throw new Exception($"Could not find binding for the field {info.Name}");
 
                             info.SetValueDirect(typedRef, types.Select(t => _instances[t]).ToList());

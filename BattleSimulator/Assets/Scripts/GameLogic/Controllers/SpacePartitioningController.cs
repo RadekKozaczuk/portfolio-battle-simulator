@@ -63,17 +63,6 @@ namespace GameLogic.Controllers
                 _dead = false;
                 QuadrantSize = quadrantSize;
             }
-
-            internal Unit(int unitId, int armyId, float2 position, int quadrantSize)
-            {
-                UnitId = unitId;
-                ArmyId = armyId;
-                QuadrantIdX = int.MinValue;
-                QuadrantIdY = int.MinValue;
-                Position = position;
-                _dead = false;
-                QuadrantSize = quadrantSize;
-            }
         }
 
         /// <summary>

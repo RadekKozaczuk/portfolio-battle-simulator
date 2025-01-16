@@ -11,7 +11,7 @@ namespace UI.Data
         [SerializeField]
         internal string Name;
 
-        [Range(1, 100)]
+        [Range(0, 100)]
         [SerializeField]
         internal int Amount;
 

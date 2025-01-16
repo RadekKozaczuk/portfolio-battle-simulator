@@ -1,5 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-#define CUSTOM_BUILD
+#define UNITY_EDITOR_AND_DEVELOPMENT_BUILD
 #endif
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -40,6 +40,7 @@ namespace Core
         };
 
         static readonly DebugConfig _config;
+        static readonly bool[] _cachedResults = new bool[SignalProcessorPrecalculatedArrays.SignalCount];
 #endif
 
         internal static void Intercept(int signalId, string signalName)
@@ -51,64 +52,66 @@ namespace Core
         internal static void Intercept(int signalId, string signalName,
             object arg0)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0);
             SignalService.AddSignal(signalId, arg0);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1);
             SignalService.AddSignal(signalId, arg0, arg1);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2);
             SignalService.AddSignal(signalId, arg0, arg1, arg2);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2, object arg3)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2, arg3);
             SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2, object arg3, object arg4)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2, arg3, arg4);
             SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2, object arg3, object arg4, object arg5)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2, arg3, arg4, arg5);
             SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
         }
 
         internal static void Intercept(int signalId, string signalName,
             object arg0, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
         {
-            CommonPart(signalId, signalName);
+            CommonPart(signalId, signalName, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             SignalService.AddSignal(signalId, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
         }
 
-        [Conditional("CUSTOM_BUILD")] // conditionals do not support compound conditions
-        static void CommonPart(int signalId, string signalName)
+        [Conditional("UNITY_EDITOR_AND_DEVELOPMENT_BUILD")] // conditionals do not support compound conditions
+        static void CommonPart(int signalId, string signalName, params object[] args)
         {
-            // todo: should cache results 
+            if (_cachedResults[signalId])
+                return; // return to save on memory allocations
 
+            _cachedResults[signalId] = true;
             List<Delegate> reactMethods = SignalService.GetReactMethods(signalId);
 
             foreach (Delegate d in reactMethods)
@@ -151,14 +154,13 @@ namespace Core
                     else
                         part = $".{method.Name}";
 
-                    // todo: bring back if possible
-                    /*for (int j = 0; j < args.Length; j++)
+                    for (int j = 0; j < args.Length; j++)
                     {
                         object obj = args[j];
                         if (j > 0)
                             part2 += ", ";
                         part2 += obj;
-                    }*/
+                    }
 
                     Debug.Log($"{signalName} was sent in: {method.DeclaringType.FullName}{part}, args: {part2}");
                 }

@@ -42,8 +42,8 @@ namespace GameLogic.ViewModels
 
         public static void BindControllers()
         {
-            ArchitectureService.BindToInterface<IUnitController>(typeof(WarriorController));
-            ArchitectureService.BindToInterface<IUnitController>(typeof(ArcherController));
+            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(WarriorController));
+            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(ArcherController));
         }
     }
 }

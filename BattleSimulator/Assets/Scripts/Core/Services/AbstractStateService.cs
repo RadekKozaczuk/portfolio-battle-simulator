@@ -57,6 +57,7 @@ namespace Core.Services
         /// </summary>
         protected static int[] CombineArrays(int[]? a, int[]? b)
         {
+            // ReSharper disable once ConvertIfStatementToSwitchStatement
             if (a is { Length: > 0 } && b is { Length: > 0 })
             {
                 int[] arr = new int[a.Length + b.Length];
@@ -65,6 +66,7 @@ namespace Core.Services
                 for (; i < a.Length; i++)
                     arr[i] = a[i];
 
+                // ReSharper disable once ForCanBeConvertedToForeach
                 for (int j = 0; j < b.Length; j++)
                     arr[i++] = b[j];
 
@@ -82,6 +84,7 @@ namespace Core.Services
                 return arr;
             }
 
+            // ReSharper disable once InvertIf
             if (b is { Length: > 0 })
             {
                 int[] arr = new int[b.Length];

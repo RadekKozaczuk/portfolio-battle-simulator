@@ -30,6 +30,9 @@ namespace Core.Services
         // ReSharper disable once StaticMemberInGenericType
         static readonly Dictionary<Type, List<Type>> _interfaceBindings = new();
 
+        // ReSharper disable once StaticMemberInGenericType
+        static readonly Dictionary<Type, object> _boundModels = new();
+
         public static void Inject(Func<Type, TScriptableObject?> findConfig, List<string>? additionalAssemblies = null)
         {
             var assemblyNames = new List<string>
@@ -73,6 +76,11 @@ namespace Core.Services
                 _interfaceBindings.Add(typeof(T), new List<Type> {type});
 
             CreateInstance(type);
+        }
+
+        public static void RebindModel<T>(object model)
+        {
+            _boundModels.Add(typeof(T), model);
         }
 
         /// <summary>

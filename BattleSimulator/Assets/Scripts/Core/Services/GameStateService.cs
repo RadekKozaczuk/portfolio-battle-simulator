@@ -8,8 +8,6 @@ namespace Core.Services
     public delegate void ChangeState(GameState requested, int[]? additionalScenesToLoad = null,
         int[]? additionalScenesToUnload = null, int[]? scenesToSynchronize = null);
 
-    public delegate void StateChanged(GameState previous, GameState current);
-
     public delegate GameState GetCurrentGameState();
 
     public static class GameStateService

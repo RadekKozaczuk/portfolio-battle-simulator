@@ -46,6 +46,15 @@ namespace Core.Models
             Color = color;
         }
 
+        public ArmyModel(List<int> unitAmounts, List<Strategy> strategies)
+        {
+            Assert.IsTrue(unitAmounts.Count == strategies.Count, "Number of unit types must be equal to the number of strategies.");
+
+            _amounts = unitAmounts.ToArray();
+            _strategies = strategies.ToArray();
+            Color = default;
+        }
+
         public int GetUnitCount(int unitType) => _amounts[unitType];
 
         public Strategy GetStrategy(int unitType) => _strategies[unitType];

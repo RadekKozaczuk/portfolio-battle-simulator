@@ -8,7 +8,7 @@ namespace Core
     /// Indicates that this field will be populated by <see cref="Core.Services.DependencyInjectionService{TScriptableObject}"/>.
     /// The field should be always private, static, and readonly.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Constructor)]
     [MeansImplicitUse(ImplicitUseKindFlags.Assign)]
     public class InjectAttribute : Attribute { }
 }

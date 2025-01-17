@@ -218,7 +218,6 @@ namespace Core.Services
             while (_signals.Count > 0)
             {
                 int id = _signals.Dequeue();
-
                 (int queueIndex, Type[] types) = _signalQueueLookup[id];
 
                 if (types.Length == 0) // signal is parameterless

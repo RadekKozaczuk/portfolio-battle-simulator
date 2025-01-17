@@ -14,22 +14,9 @@ namespace UI.Views
     [DisallowMultipleComponent]
     class ArmyPanelView : MonoBehaviour
     {
-        internal ArmyModel Model
-        {
-            get
-            {
-                var unitAmounts = new List<int>();
-                var strategies = new List<Strategy>();
+        internal List<int> UnitAmounts => _units.Select(unit => unit.Data).Select(data => data.Amount).ToList();
 
-                foreach (UnitData data in _units.Select(unit => unit.Data))
-                {
-                    unitAmounts.Add(data.Amount);
-                    strategies.Add(data.Strategy);
-                }
-
-                return new ArmyModel(unitAmounts, strategies, Color.green);
-            }
-        }
+        internal List<Strategy> Strategies => _units.Select(unit => unit.Data).Select(data => data.Strategy).ToList();
 
         static readonly UIConfig _config;
 

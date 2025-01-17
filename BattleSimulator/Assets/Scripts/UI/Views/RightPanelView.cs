@@ -32,11 +32,8 @@ namespace UI.Views
         {
             LeftPanelView leftPanel = MainMenuSceneReferenceHolder.LeftPanel;
             List<ArmyModel> armies = leftPanel.Armies;
-
-            armies[0].Color = new Color(0.23f, 0.75f, 0.70f, 1f);
-            armies[1].Color = new Color(0.16f, 0.75f, 0.26f, 255);
-
             Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();
+
             GameLogicViewModel.InitializeBattle(armies, spawnZones);
             PresentationViewModel.InstantiateUnits(armies);
             GameStateService.ChangeState(GameState.Gameplay);

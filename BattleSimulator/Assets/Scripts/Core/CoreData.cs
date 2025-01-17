@@ -1,5 +1,4 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using Core.Models;
 using Unity.Collections;
 using Unity.Mathematics;
 
@@ -17,7 +16,5 @@ namespace Core
         /// Contains two <see cref="float.MinValue"/> values if the corresponding unit was not attacked.
         /// </summary>
         public static NativeArray<float2> AttackingEnemyPos;
-
-        public static UnitStatsModel[] UnitStats;
     }
 }

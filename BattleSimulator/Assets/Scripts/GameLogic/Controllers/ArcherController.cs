@@ -3,6 +3,8 @@ using System;
 using Core;
 using Core.Enums;
 using Core.Models;
+using GameLogic.Config;
+using GameLogic.Data;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine.Assertions;
@@ -16,6 +18,8 @@ namespace GameLogic.Controllers
         static readonly GameLogicMainController _gameLogicMainController;
 
         readonly Action<int, int, IBattleModel>[] _strategies = {Basic, Defensive};
+
+        static readonly UnitStatsConfig _config;
 
         [Preserve]
         ArcherController() { }
@@ -43,7 +47,7 @@ namespace GameLogic.Controllers
                 if (unit.NearestEnemyId == int.MinValue)
                     continue;
 
-                ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
+                ref UnitData sharedData = ref _config.UnitData[model.UnitType]; // todo: we retrieve it everytime even tho unit type does not change in runtime
 
                 float2 pos = CoreData.UnitCurrPos[unitId];
                 float2 enemyPos = CoreData.UnitCurrPos[enemy.Id];
@@ -87,7 +91,7 @@ namespace GameLogic.Controllers
 
                 Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
 
-                ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
+                ref UnitData sharedData = ref _config.UnitData[model.UnitType];
 
                 float2 pos = CoreData.UnitCurrPos[unitId];
                 float2 enemyPos = CoreData.UnitCurrPos[enemy.Id];

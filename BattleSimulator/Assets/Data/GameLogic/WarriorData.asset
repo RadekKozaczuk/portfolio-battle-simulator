@@ -19,5 +19,5 @@ MonoBehaviour:
   AttackRange: 2.5
   AttackCooldown: 1
   PostAttackDelay: 0
-  Speed: 0
+  Speed: 10
   DistanceToEnemyCenterThreshold: 20

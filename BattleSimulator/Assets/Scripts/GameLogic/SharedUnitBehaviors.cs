@@ -1,7 +1,7 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-using Codice.Client.Common;
 using Core;
 using Core.Models;
+using GameLogic.Data;
 using Unity.Mathematics;
 using Time = UnityEngine.Time;
 
@@ -16,7 +16,7 @@ namespace GameLogic
         /// <summary>
         /// Throws exception if the unit passed is not alive (health is lower equal zero).
         /// </summary>
-        internal static void MoveTowardsCenter(ref UnitModel unit, in float2 enemyArmyCenter, in UnitStatsModel sharedData)
+        internal static void MoveTowardsCenter(ref UnitModel unit, in float2 enemyArmyCenter, UnitData sharedData)
         {
 #if DEVELOPMENT_BUILD
             Assert.IsTrue(unit.Health > 0, "Unit must be alive in order to be processed.");

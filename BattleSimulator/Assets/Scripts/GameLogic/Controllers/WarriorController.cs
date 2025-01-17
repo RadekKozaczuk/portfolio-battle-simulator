@@ -3,6 +3,8 @@ using System;
 using Core;
 using Core.Enums;
 using Core.Models;
+using GameLogic.Config;
+using GameLogic.Data;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine;
@@ -16,6 +18,8 @@ namespace GameLogic.Controllers
         static readonly UpdateArmyCenterController _updateArmyCenterController;
 
         readonly Action<int, int, IBattleModel>[] _strategies = {Basic, Defensive};
+
+        static readonly UnitStatsConfig _config;
 
         [Preserve]
         WarriorController() { }
@@ -51,8 +55,8 @@ namespace GameLogic.Controllers
                 ref UnitModel unit = ref battleModel.GetUnit(model.Id);
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 
-                ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
-                SharedUnitBehaviors.MoveTowardsCenter(ref unit, _updateArmyCenterController.GetArmyCenter(enemy.ArmyId), in sharedData);
+                ref UnitData sharedData = ref _config.UnitData[model.UnitType];
+                SharedUnitBehaviors.MoveTowardsCenter(ref unit, _updateArmyCenterController.GetArmyCenter(enemy.ArmyId), sharedData);
 
                 Logic(ref unit, ref enemy);
             }
@@ -60,7 +64,7 @@ namespace GameLogic.Controllers
 
         static void Logic(ref UnitModel model, ref UnitModel enemyModel)
         {
-            ref UnitStatsModel sharedData = ref CoreData.UnitStats[model.UnitType];
+            ref UnitData sharedData = ref _config.UnitData[model.UnitType];
 
             // Movement Logic
             if (model.AttackCooldown > sharedData.CooldownDifference)
@@ -83,7 +87,7 @@ namespace GameLogic.Controllers
             if (distance > sharedData.AttackRange)
                 return;
 
-            ref UnitStatsModel enemySharedData = ref CoreData.UnitStats[enemyModel.UnitType];
+            ref UnitData enemySharedData = ref _config.UnitData[enemyModel.UnitType];
 
             Signals.UnitAttacked(model.Id);
             model.AttackCooldown = sharedData.AttackCooldown;

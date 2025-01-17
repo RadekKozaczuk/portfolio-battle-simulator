@@ -2,6 +2,7 @@
 using System;
 using Core;
 using Core.Models;
+using GameLogic.Config;
 using GameLogic.Interfaces;
 using JetBrains.Annotations;
 using Unity.Collections;
@@ -17,18 +18,13 @@ namespace GameLogic.Controllers
     {
         Random _random = new(123);
 
+        static readonly UnitStatsConfig _config;
+
         [Preserve]
         internal InitializeBattleModelController() { }
 
         internal void InitializeModel(IBattleModel battleModel, Bounds[] spawnZones)
         {
-            // todo: for now here - should be in config
-            CoreData.UnitStats = new[]
-            {
-                new UnitStatsModel(50, 5, 20, 2.5f, 1f, 0f, 10f, 20f),
-                new UnitStatsModel(5, 0, 10, 20f, 5f, 1f, 10f, 20f)
-            };
-
             // todo: in the future add GetUnitCount
             Span<UnitModel> units = battleModel.GetUnits();
 
@@ -39,7 +35,7 @@ namespace GameLogic.Controllers
             for (int armyId = 0; armyId < 2; armyId++)
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
-                    int health = CoreData.UnitStats[unitType].Health;
+                    int health = _config.UnitData[unitType].Health;
                     Span<UnitModel> span = battleModel.GetUnits(armyId, unitType);
 
                     for (int i = 0; i < span.Length; i++)

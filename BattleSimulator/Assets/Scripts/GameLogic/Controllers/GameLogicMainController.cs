@@ -7,6 +7,7 @@ using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Core.Services;
+using GameLogic.Config;
 using GameLogic.Interfaces;
 using GameLogic.Jobs;
 using GameLogic.Models;
@@ -14,7 +15,6 @@ using JetBrains.Annotations;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 [assembly:InternalsVisibleTo("Tests")]
 namespace GameLogic.Controllers
@@ -41,24 +41,24 @@ namespace GameLogic.Controllers
         static readonly InitializeBattleModelController _battleModelController;
 
         ISpacePartitioningController _spacePartitioningController;
-        IBattleModel _battleModel;
+        readonly IBattleModel _battleModel;
         Action<int>[] _behaviours;
         ProjectileModel[] _projectiles = new ProjectileModel[2];
         bool _finished;
 
-        [Preserve]
-        GameLogicMainController() { }
+        static readonly SpacePartitioningConfig _config;
 
-        public void InitializeModel(List<ArmyModel> armies, Bounds[] spawnZones)
+        [Inject]
+        GameLogicMainController(IBattleModel model) => _battleModel = model;
+
+        public void InitializeModel(Bounds[] spawnZones)
         {
-            _battleModel = new BattleModel(armies);
             _updateArmyCenterController.Initialize(_battleModel);
             _battleModelController.InitializeModel(_battleModel, spawnZones);
 
             Span<UnitModel> units = _battleModel.GetUnits();
 
-            var bounds = new Bounds(Vector3.zero, new Vector3(100, 1, 100));
-            _spacePartitioningController = new SpacePartitioningController(bounds, 8, units.Length);
+            _spacePartitioningController = new SpacePartitioningController(_config.Bounds, _config.QuadrantCount, units.Length);
 
             for (int i = 0; i < units.Length; i++)
                 _spacePartitioningController.AddUnit(i, units[i].ArmyId, CoreData.UnitCurrPos[i]);
@@ -68,9 +68,6 @@ namespace GameLogic.Controllers
 
         public void CustomUpdate()
         {
-            if (GameStateService.CurrentState != GameState.Gameplay)
-                return;
-
             if (_finished)
                 return;
 
@@ -148,11 +145,11 @@ namespace GameLogic.Controllers
                     continue;
 
                 _battleModel.UnitDied(units[i].ArmyId);
-                _spacePartitioningController.KillUnit(units[i].Id); // todo: use in the future
+                _spacePartitioningController.KillUnit(units[i].Id);
                 Signals.UnitDied(units[i].Id);
             }
 
-            _spacePartitioningController.UpdateUnits(); // todo: use in the future
+            _spacePartitioningController.UpdateUnits();
         }
 
         internal void AddProjectile(int armyId, float2 pos, float2 targetPos)

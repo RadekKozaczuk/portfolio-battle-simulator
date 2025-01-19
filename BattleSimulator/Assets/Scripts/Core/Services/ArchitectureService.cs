@@ -108,6 +108,9 @@ namespace Core.Services
             SignalService.ExecuteSentSignals();
         }
 
+        /// <summary>
+        /// Returns null if no config was found.
+        /// </summary>
         static ScriptableObject? FindConfig(Type type)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

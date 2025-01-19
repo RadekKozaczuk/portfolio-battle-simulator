@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Core.Interfaces;
 using UnityEngine.Assertions;
+// ReSharper disable StaticMemberInGenericType
 
 namespace Core.Services
 {
@@ -15,50 +16,94 @@ namespace Core.Services
     /// <typeparam name="TScriptableObject">Always ScriptableObject type</typeparam>
     public static class DependencyInjectionService<TScriptableObject> where TScriptableObject : class
     {
+        class AwaitedConstruction
+        {
+            /// <summary>
+            /// Target type this instance binds to.
+            /// </summary>
+            internal readonly Type Type;
+
+            /// <summary>
+            /// Constructor that creates the instance.
+            /// </summary>
+            internal readonly ConstructorInfo Constructor;
+
+            /// <summary>
+            /// Parameters of the <see cref="Constructor"/>.
+            /// </summary>
+            internal readonly ParameterInfo[] Parameters;
+
+            /// <summary>
+            /// Fields that this instance injects into.
+            /// </summary>
+            internal List<FieldInfo> Fields;
+
+            internal AwaitedConstruction(Type type, ConstructorInfo constructor, ParameterInfo[] parameters)
+            {
+                Type = type;
+                Constructor = constructor;
+                Parameters = parameters;
+            }
+        }
+
         /// <summary>
         /// Key is a controller/view-model's type. Value is the instance.
         /// </summary>
-        // ReSharper disable once StaticMemberInGenericType
         static readonly Dictionary<Type, object> _instances = new();
 
-        // ReSharper disable once StaticMemberInGenericType
+        /// <summary>
+        /// Key is a controller/view-model's type. Value is the instance.
+        /// </summary>
+        static readonly List<AwaitedConstruction> _instancesConstructorInjection = new();
+
         static readonly List<IInitializable> _initializables = new();
 
         /// <summary>
         /// Key is an interface. Value is a list of types that binds with that interface.
         /// </summary>
-        // ReSharper disable once StaticMemberInGenericType
         static readonly Dictionary<Type, List<Type>> _interfaceBindings = new();
 
-        // ReSharper disable once StaticMemberInGenericType
         static readonly Dictionary<Type, object> _boundModels = new();
+
+        static readonly List<string> _assemblyNames = new()
+        {
+            "Boot",
+            "Core",
+            "GameLogic",
+            "Presentation",
+            "UI"
+        };
 
         public static void Inject(Func<Type, TScriptableObject?> findConfig, List<string>? additionalAssemblies = null)
         {
-            var assemblyNames = new List<string>
-            {
-                "Boot",
-                "Core",
-                "GameLogic",
-                "Presentation",
-                "UI"
-            };
-
             if (additionalAssemblies != null)
-                assemblyNames.AllocFreeAddRange(additionalAssemblies);
+                _assemblyNames.AllocFreeAddRange(additionalAssemblies);
 
-            var assemblies = new Assembly[assemblyNames.Count];
-            for (int i = 0; i < assemblyNames.Count; i++)
-                assemblies[i] = Assembly.Load(assemblyNames[i]);
+            var assemblies = new Assembly[_assemblyNames.Count];
+            for (int i = 0; i < _assemblyNames.Count; i++)
+                assemblies[i] = Assembly.Load(_assemblyNames[i]);
 
+            // this creates signal queues
             BindSignals(assemblies);
-            BindConfigsAndCreateInstances(assemblies, findConfig);
+
+            // this injects configs and creates react method for services
+            BindConfigsAndReactiveServices(assemblies, findConfig);
+
+            // this creates instances of controllers/viewmodel that can be constructed (have parameterless constructors)
+            // classes with injectable constructors are added to list
+            CreateOrPostponeInstances(assemblies);
+
+            // what is still to do:
+            // - inject what possible (constructor-less)
+            // - that's it
+            // - wait for BindModels and then go through all fields again (do we
+            InjectWhatPossible(assemblies);
         }
 
         /// <summary>
-        /// Binds Controller/ViewModel to an interface. You can bind one or more types to the same interface.
-        /// In case of more types than one the field must be an array or a list.
-        /// Injects in that list will be in the same order they were bound.
+        /// Associate a Controller/ViewModel with an interface. Many types can be bound to the same interface.
+        /// In such case each field the type injects into must be an array or a list.
+        /// Injected instances will be in present in the collection in the same order they were bound.
         /// </summary>
         /// <param name="type">The type of the controller or the viewmodel you want to associate (bind) with the interface.
         /// Must implement the interface.</param>
@@ -74,18 +119,23 @@ namespace Core.Services
             }
             else
                 _interfaceBindings.Add(typeof(T), new List<Type> {type});
-
-            CreateInstance(type);
         }
 
         public static void RebindModel<T>(object model)
         {
             _boundModels.Add(typeof(T), model);
+
+            // go through all awaiting injections, recreate and inject them
+            for (int i = 0; i < _instancesConstructorInjection.Count; i++)
+            {
+
+            }
         }
 
         /// <summary>
-        /// Initialization invoke must be done on a different frame as injected fields (for example configs)
-        /// will not be accessible if accessed on the same frame.
+        /// Invoke all <see cref="IInitializable"/> methods implemented by all Controllers and ViewModels.
+        /// This method myst be called on different frame as the method that inject fields (or example configs)
+        /// because those methods at not accessible at the same frame.
         /// </summary>
         public static void InvokeInitialization()
         {
@@ -93,24 +143,88 @@ namespace Core.Services
                 instance.Initialize();
         }
 
-        public static void ResolveBindings(List<string>? additionalAssemblies = null)
+        /// <summary>
+        /// Goes through 'Core' assembly, searches for <see cref="ISignal"/> and binds all the methods.
+        /// </summary>
+        static void BindSignals(Assembly[] assemblies)
         {
-            var assemblyNames = new List<string>
+            Assembly core = assemblies.First(a => a.GetName().Name == "Core");
+
+            foreach (Type type in core.GetTypes())
             {
-                "Boot",
-                "Core",
-                "GameLogic",
-                "Presentation",
-                "UI"
-            };
+                // ignore internal classes, enums
+                if (type.IsEnum || type.IsNested)
+                    continue;
 
-            if (additionalAssemblies != null)
-                assemblyNames.AllocFreeAddRange(additionalAssemblies);
+                if (type is not {IsInterface: true, Name: "ISignal"})
+                    continue;
 
-            var assemblies = new Assembly[assemblyNames.Count];
-            for (int i = 0; i < assemblyNames.Count; i++)
-                assemblies[i] = Assembly.Load(assemblyNames[i]);
+                SignalService.BindSignals(type.GetMethods());
+                return;
+            }
 
+            throw new Exception("Impossible state - ISignal class not found.");
+        }
+
+        static void CreateOrPostponeInstances(Assembly[] assemblies)
+        {
+            Type injectAttribute = typeof(InjectAttribute);
+
+            foreach (Assembly asm in assemblies)
+                foreach (Type type in asm.GetTypes())
+                {
+                    // ignore internal classes, enums
+                    if (type.IsEnum || type.IsNested || type.IsInterface || type.IsArray)
+                        continue;
+
+                    // filter out types created by the compiler f.e. "PrivateImplementationDetails"
+                    if (type.Namespace == null)
+                        continue;
+
+                    // Controllers are never abstract
+                    if (type.IsAbstract)
+                        continue;
+
+                    // todo: should ViewModels be even instantiated? Yes, they may have interfaces
+                    // bind type in the container if it is a Controller or a ViewModel
+                    // ReSharper disable once InvertIf
+                    if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
+                    {
+                        ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                        if (constructors.Length == 0)
+                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
+
+                        ConstructorInfo constructor = constructors[0];
+
+                        // check if constructor injection
+                        if (constructor.GetCustomAttributes(injectAttribute, false).Length > 0)
+                        {
+                            ParameterInfo[] parameters = constructor.GetParameters();
+
+                            // these need to wait at this moment we only need constructors and what they bind to
+                            _instancesConstructorInjection.Add(new AwaitedConstruction(type, constructor, parameters));
+                        }
+                        else
+                        {
+                            // normal construction
+                            object instance = constructors[0].Invoke(new object[] { });
+
+                            if (_instances.TryGetValue(type, out object _))
+                                throw new ArgumentException("Binding the same element twice is not allowed.");
+
+                            _instances.Add(type, instance);
+                            SignalService.AddReactiveInstantiatable(instance);
+
+                            if (typeof(IInitializable).IsAssignableFrom(type))
+                                _initializables.Add((IInitializable)instance);
+                        }
+                    }
+                }
+        }
+
+        static void InjectWhatPossible(Assembly[] assemblies)
+        {
             Type injectAttribute = typeof(InjectAttribute);
 
             foreach (Assembly asm in assemblies)
@@ -120,9 +234,7 @@ namespace Core.Services
                     if (type.IsEnum || type.IsNested)
                         continue;
 
-                    // todo: there are some types created by the compiler f.e. "PrivateImplementationDetails" that we want to filter out here
-                    // todo: I don't know how to do it and this method is kinda too generic
-                    // todo: however it works well in our case because our convention forces to add namespaces everywhere
+                    // filter out types created by the compiler f.e. "PrivateImplementationDetails"
                     if (type.Namespace == null)
                         continue;
 
@@ -141,7 +253,7 @@ namespace Core.Services
                         Type fieldType = info.FieldType;
                         TypedReference typedRef = __makeref(info); // fast injection
 
-                        // first check if an array
+                        // first check if an array, a generic list, or a regular field
                         if (fieldType.IsArray)
                         {
                             Type elementType = fieldType.GetElementType()!;
@@ -171,11 +283,12 @@ namespace Core.Services
                             if (!_interfaceBindings.TryGetValue(elementType, out List<Type> types))
                                 throw new Exception($"Could not find binding for the field {info.Name}");
 
+                            // todo: what if some of these require constructor injection?
+                            // todo: should we inject only some of them? What about order? The rest will be null or not present? 
                             info.SetValueDirect(typedRef, types.Select(t => _instances[t]).ToList());
                         }
-                        else // normal field
+                        else
                         {
-                            // is interface?
                             if (fieldType.IsInterface)
                             {
                                 if (!_interfaceBindings.TryGetValue(fieldType, out List<Type> types))
@@ -183,14 +296,12 @@ namespace Core.Services
 
                                 Assert.IsTrue(types.Count == 1,
                                               "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
-                                info.SetValueDirect(typedRef, _instances[types[0]]);
+
+                                TryInject(info, types[0]);
                             }
                             else
                             {
-                                if (_instances.TryGetValue(fieldType, out object instance))
-                                    info.SetValueDirect(typedRef, instance);
-                                else
-                                    throw new Exception($"No instance of type {fieldType} to bind into the field {info.Name}.");
+                                TryInject(info, fieldType);
                             }
                         }
                     }
@@ -198,58 +309,28 @@ namespace Core.Services
         }
 
         /// <summary>
-        /// Goes through 'Core' assembly, searches for <see cref="ISignal"/> and binds all the methods.
+        /// two possibilities:<b/>
+        /// - we either inject immediately if it is on the <see cref="_instances"/> list<b/>
+        /// - or we ignore it for now if it requires construction injection (is on the <see cref="_instancesConstructorInjection"/> list)<b/>
+        /// - if neither from above then exception<b/>
         /// </summary>
-        static void BindSignals(Assembly[] assemblies)
+        static void TryInject(FieldInfo info, Type fieldType)
         {
-            Assembly core = assemblies.First(a => a.GetName().Name == "Core");
-
-            foreach (Type type in core.GetTypes())
+            if (_instances.TryGetValue(fieldType, out object instance))
             {
-                // ignore internal classes, enums
-                if (type.IsEnum || type.IsNested)
-                    continue;
-
-                if (type is not {IsInterface: true, Name: "ISignal"})
-                    continue;
-
-                SignalService.BindSignals(type.GetMethods());
-                return;
+                TypedReference typedRef = __makeref(info); // fast injection
+                info.SetValueDirect(typedRef, instance);
             }
-
-            throw new Exception("Impossible state - ISignal class not found.");
+            else
+            {
+                // check if it is on the awaited list
+                AwaitedConstruction? ac = _instancesConstructorInjection.FirstOrDefault(a => a.Type == fieldType);
+                if (ac == null)
+                    throw new Exception($"Could not find a suitable constructor for field {info.Name} of type {fieldType}.");
+            }
         }
 
-        static void CreateInstance(Type type)
-        {
-            ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (constructors.Length == 0)
-                throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
-
-            object instance = constructors[0].Invoke(new object[] { });
-
-            if (_instances.TryGetValue(type, out object _))
-                throw new ArgumentException("Binding the same element twice is not allowed.");
-
-            _instances.Add(type, instance);
-            SignalService.AddReactiveInstantiatable(instance);
-
-            if (typeof(IInitializable).IsAssignableFrom(type))
-                _initializables.Add((IInitializable)instance);
-        }
-
-        /// <summary>
-        /// This method does a few things:
-        /// -
-        /// -
-        /// - 
-        /// Goes through all assemblies, injects all config files, and
-        /// </summary>
-        /// <param name="assemblies"></param>
-        /// <param name="findConfig"></param>
-        /// <exception cref="Exception"></exception>
-        static void BindConfigsAndCreateInstances(Assembly[] assemblies, Func<Type, TScriptableObject?> findConfig)
+        static void BindConfigsAndReactiveServices(Assembly[] assemblies, Func<Type, TScriptableObject?> findConfig)
         {
             foreach (Assembly asm in assemblies)
                 foreach (Type type in asm.GetTypes())
@@ -280,24 +361,13 @@ namespace Core.Services
                         field.SetValue(type, config);
                     }
 
-                    // todo: in the future, make suffix "Service" a requirement
-                    if (type.IsStatic() && (type.Namespace.EndsWith("Services") || type.Name.EndsWith("Service")))
-                    {
-                        SignalService.AddReactiveSystem(type);
-                        continue;
-                    }
-
-                    // Controllers are never abstract
+                    // Services are never abstract
                     if (type.IsAbstract)
                         continue;
 
-                    // todo: should ViewModels be even instantiated? Yes, they may have interfaces
-                    // bind type in the container if it is a Controller or a ViewModel
-                    // ReSharper disable once InvertIf
-                    if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
-                        // if present on the binding list then the instance already exists
-                        if (!type.GetInterfaces().Any(i => _interfaceBindings.TryGetValue(i, out _)))
-                            CreateInstance(type);
+                    // todo: in the future, make suffix "Service" a requirement
+                    if (type.IsStatic() && (type.Namespace.EndsWith("Services") || type.Name.EndsWith("Service")))
+                        SignalService.AddReactiveService(type);
                 }
         }
     }

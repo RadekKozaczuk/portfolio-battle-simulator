@@ -5,9 +5,11 @@ using GameLogic.Controllers;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
+using Core.Enums;
 using Core.Models;
 using Core.Services;
 using GameLogic.Interfaces;
+using GameLogic.Models;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
@@ -23,7 +25,9 @@ namespace GameLogic.ViewModels
 
         public static void CustomUpdate()
         {
-            _mainController.CustomUpdate();
+            if (GameStateService.CurrentState == GameState.Gameplay)
+                _mainController.CustomUpdate();
+
             PresentationViewModel.CustomUpdate();
         }
 
@@ -37,8 +41,13 @@ namespace GameLogic.ViewModels
 
         public static void GameplayOnExit() { }
 
-        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones) =>
-            _mainController.InitializeModel(armies, spawnZones);
+        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones)
+        {
+            var model = new BattleModel(armies);
+            _mainController.InitializeModel(spawnZones);
+
+            DependencyInjectionService<ScriptableObject>.RebindModel<IBattleModel>(model);
+        }
 
         public static void BindControllers()
         {

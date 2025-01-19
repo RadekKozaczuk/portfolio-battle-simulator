@@ -43,7 +43,7 @@ namespace Boot
             CodeValidationService.Validate();
 #endif
 
-            // instance disposed as the object is a singleton
+            // todo: these methods could be probably move to ArchitectureService.Initialize or something
             SignalService.Initialize(typeof(ReactAttribute));
 
             // must be after the above as it is depended on SignalService
@@ -52,7 +52,6 @@ namespace Boot
             // injection must be done in awake because fields cannot be injected into in the same method they are used in
             // start will be at least 1 frame later than Awake.
             ArchitectureService.Inject();
-            DependencyInjectionService<ScriptableObject>.ResolveBindings();
         }
 
         void Start()

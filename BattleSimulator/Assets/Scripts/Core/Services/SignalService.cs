@@ -32,7 +32,7 @@ namespace Core.Services
         /// SignalName is a unique signal identifier.
         /// Index is the index in the <see cref="_signalQueues"/> array that points at the corresponding queue.
         /// </summary>
-        static (int queueIndex, Type[] types)[] _signalQueueLookup;
+        static readonly (int queueIndex, Type[] types)[] _signalQueueLookup;
 
         /// <summary>
         /// This array stores signal runtime values for signals with parameters.
@@ -53,15 +53,15 @@ namespace Core.Services
 
         static Type _reactAttribute;
 
-        public static void Initialize(Type reactAttribute)
+        static SignalService()
         {
             _signalQueueLookup = new (int index, Type[] types)[SignalCount];
 
             for (int i = 0; i < SignalProcessorPrecalculatedArrays.SignalCount; i++)
                 _reactMethods[i] = new List<Delegate>();
-
-            _reactAttribute = reactAttribute;
         }
+
+        public static void Initialize(Type reactAttribute) => _reactAttribute = reactAttribute;
 
         /// <summary>
         /// Returns a delegate pointing at all corresponding reactive methods (decorated with <see cref="ReactAttribute"/>)<br/>
@@ -69,7 +69,29 @@ namespace Core.Services
         /// </summary>
         public static List<Delegate> GetReactMethods(int id) => _reactMethods[id];
 
-        internal static void BindSignals(MethodInfo[] signals) => BindSignals_Internal(signals);
+        internal static void BindSignals(MethodInfo[] signals)
+        {
+            int queueIndex = 0;
+
+            for (int i = 0; i < signals.Length; i++)
+            {
+                MethodInfo method = signals[i];
+                ParameterInfo[] parameters = method.GetParameters();
+
+                if (parameters.Length == 0)
+                {
+                    _signalQueueLookup[i] = (queueIndex++, Array.Empty<Type>());
+                    continue;
+                }
+
+                var types = new Type[parameters.Length];
+                for (int j = 0; j < parameters.Length; j++)
+                    types[j] = parameters[j].ParameterType;
+
+                _signalQueueLookup[i] = (queueIndex, types);
+                queueIndex += parameters.Length;
+            }
+        }
 
         /// <summary>
         /// Adds instantiatable (controller, reference holder, or viewmodel) that has reactive methods (decorated with <see cref="ReactAttribute"/>).
@@ -83,7 +105,7 @@ namespace Core.Services
         /// <summary>
         /// Adds a static class that has reactive methods (decorated with <see cref="ReactAttribute"/>).
         /// </summary>
-        internal static void AddReactiveSystem(Type system) =>
+        internal static void AddReactiveService(Type system) =>
             BindReactiveMethods(system.GetMethods(BindingFlags.NonPublic | BindingFlags.Static));
 
 #region AddSignal
@@ -243,30 +265,6 @@ namespace Core.Services
 
                 for (int i = 0; i < _reactMethods[id].Count; i++)
                     _reactMethods[id][i].DynamicInvoke(args);
-            }
-        }
-
-        static void BindSignals_Internal(IReadOnlyList<MethodInfo> signals)
-        {
-            int queueIndex = 0;
-
-            for (int i = 0; i < signals.Count; i++)
-            {
-                MethodInfo method = signals[i];
-                ParameterInfo[] parameters = method.GetParameters();
-
-                if (parameters.Length == 0)
-                {
-                    _signalQueueLookup[i] = (queueIndex++, Array.Empty<Type>());
-                    continue;
-                }
-
-                var types = new Type[parameters.Length];
-                for (int j = 0; j < parameters.Length; j++)
-                    types[j] = parameters[j].ParameterType;
-
-                _signalQueueLookup[i] = (queueIndex, types);
-                queueIndex += parameters.Length;
             }
         }
 

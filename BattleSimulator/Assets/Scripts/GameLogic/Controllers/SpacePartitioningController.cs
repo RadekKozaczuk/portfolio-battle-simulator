@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Core;
+using GameLogic.Config;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Pool;
-using UnityEngine.Scripting;
 
 namespace GameLogic.Controllers
 {
@@ -93,22 +93,55 @@ namespace GameLogic.Controllers
         readonly ObjectPool<List<Memory<Unit>>> _memoryPool;
         readonly ObjectPool<List<int>> _listPool;
 
-        // todo: for DI, for now
-        [Preserve]
-        SpacePartitioningController()
+        static readonly SpacePartitioningConfig _config;
+
+        [Inject]
+        SpacePartitioningController(IBattleModel model)
         {
-            _inside = null!;
-            _bracketsX = null!;
-            _bracketsY = null!;
+            int size = _config.QuadrantCount;
 
-            _quadrantStarts = null!;
-            _quadrantLengths = null!;
+            Assert.IsTrue(size > 0, $"Quadrant matrix dimension size must be greater than 0. Was: {size}");
 
-            _getHorizontalAreas = null!;
-            _getVerticalAreas = null!;
+            float xMin = _config.Bounds.min.x;
+            float xMax = _config.Bounds.max.x;
+            float yMin = _config.Bounds.min.z;
+            float yMax = _config.Bounds.max.z;
 
-            _memoryPool = null!;
-            _listPool = null!;
+            _size = size;
+
+            float bracketWidthX = (xMax - xMin) / size;
+            _bracketsX = new float[size + 1];
+            for (int i = 0; i <= size; i++)
+                if (i == 0)
+                    _bracketsX[0] = float.MinValue;
+                else if (i == size)
+                    _bracketsX[size] = float.MaxValue;
+                else
+                    _bracketsX[i] = xMin + i * bracketWidthX;
+
+            float bracketWidthY = (yMax - yMin) / size;
+            _bracketsY = new float[size + 1];
+            for (int i = 0; i <= size; i++)
+                if (i == 0)
+                    _bracketsY[0] = float.MinValue;
+                else if (i == size)
+                    _bracketsY[size] = float.MaxValue;
+                else
+                    _bracketsY[i] = yMin + i * bracketWidthY;
+
+            _inside = new Unit[model.GetUnits().Length]; // should be simply UnitCount property
+
+            _quadrantStarts = new int[_size * _size];
+            _quadrantLengths = new int[_size * _size];
+
+            _getHorizontalAreas = new Func<int, int, int, Memory<Unit>>[] {GetAreaUp, GetAreaDown};
+            _getVerticalAreas = new Func<int, int, int, List<Memory<Unit>>>[] {GetAreaLeft, GetAreaRight};
+
+            _memoryPool = new ObjectPool<List<Memory<Unit>>>(
+                () => new List<Memory<Unit>>(4),
+                list => list.Clear());
+
+            _listPool = new ObjectPool<List<int>>(() => new List<int>(), list => list.Clear());
         }
 
         /// <summary>

@@ -9,7 +9,7 @@ using UnityEngine.Assertions;
 namespace Core.Models
 {
     /// <summary>
-    /// Representation of the army. The amount and the strategy of every unit type.
+    /// Representation of an army. Contains units color and for every unit type - the amount and the behaviour (strategy).
     /// </summary>
     public class ArmyModel : IArmyModel
     {
@@ -17,7 +17,6 @@ namespace Core.Models
         public int UnitTypeCount => _amounts.Length;
 
         public Color Color;
-
         readonly int[] _amounts;
         readonly Strategy[] _strategies;
 

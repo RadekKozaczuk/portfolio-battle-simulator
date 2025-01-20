@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using Core.Models;
 using GameLogic.Interfaces;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests.BattleModel
 {
     class GetUnits
     {
+        Bounds[] _bounds;
+
+        [SetUp]
+        public void SetUp()
+        {
+            // Arrange the common setup for the tests
+            _bounds = new Bounds[] {new(Vector3.zero, Vector3.zero), new(Vector3.zero, Vector3.zero)};
+        }
+
         [Test]
         public void OneWarriorArmy()
         {
@@ -16,7 +26,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -35,7 +45,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -54,7 +64,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Span<UnitModel> units = battle.GetUnits(0);
             Span<UnitModel> warriors = battle.GetUnits(0, 0);
             Span<UnitModel> archers = battle.GetUnits(0, 1);
@@ -74,7 +84,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Span<UnitModel> units = battle.GetUnits();
             Span<UnitModel> units1 = battle.GetUnits(0);
             Span<UnitModel> warriors1 = battle.GetUnits(0, 0);

@@ -6,7 +6,6 @@ using Core;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
-using Core.Services;
 using GameLogic.Config;
 using GameLogic.Interfaces;
 using GameLogic.Jobs;
@@ -40,21 +39,20 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly InitializeBattleModelController _battleModelController;
 
-        ISpacePartitioningController _spacePartitioningController;
+        readonly ISpacePartitioningController _spacePartitioningController;
         readonly IBattleModel _battleModel;
-        Action<int>[] _behaviours;
-        ProjectileModel[] _projectiles = new ProjectileModel[2];
+        ProjectileModel[] _projectiles = new ProjectileModel[50];
         bool _finished;
 
         static readonly SpacePartitioningConfig _config;
 
         [Inject]
-        GameLogicMainController(IBattleModel model) => _battleModel = model;
-
-        public void InitializeModel(Bounds[] spawnZones)
+        GameLogicMainController(IBattleModel model)
         {
+            _battleModel = model;
+
             _updateArmyCenterController.Initialize(_battleModel);
-            _battleModelController.InitializeModel(_battleModel, spawnZones);
+            _battleModelController.InitializeModel(_battleModel);
 
             Span<UnitModel> units = _battleModel.GetUnits();
 

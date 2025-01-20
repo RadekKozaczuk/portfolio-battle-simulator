@@ -43,16 +43,14 @@ namespace GameLogic.ViewModels
 
         public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones)
         {
-            var model = new BattleModel(armies);
-            _mainController.InitializeModel(spawnZones);
-
-            DependencyInjectionService<ScriptableObject>.RebindModel<IBattleModel>(model);
+            IBattleModel model = new BattleModel(armies, spawnZones);
+            DependencyInjectionService<ScriptableObject>.BindModel<IBattleModel>(model);
         }
 
         public static void BindControllers()
         {
-            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(WarriorController));
-            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(ArcherController));
+            DependencyInjectionService<ScriptableObject>.BindInterface<IUnitController>(typeof(WarriorController));
+            DependencyInjectionService<ScriptableObject>.BindInterface<IUnitController>(typeof(ArcherController));
         }
     }
 }

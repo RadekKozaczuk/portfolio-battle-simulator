@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameLogic.Models
@@ -11,6 +12,7 @@ namespace GameLogic.Models
     class BattleModel : IBattleModel
     {
         int IBattleModel.ArmyCount => _armyCount;
+        Bounds[] IBattleModel.SpawnZones => _spawnZones;
 
         readonly int[] _armyStarts;
         readonly int[] _armyLengths;
@@ -33,8 +35,9 @@ namespace GameLogic.Models
         readonly int[] _aliveUnitCount;
 
         readonly Strategy[] _strategies;
+        readonly Bounds[] _spawnZones;
 
-        internal BattleModel(List<ArmyModel> armies)
+        internal BattleModel(List<ArmyModel> armies, Bounds[] spawnZones)
         {
             _armyCount = armies.Count;
             _aliveUnitCount = new int[_armyCount];
@@ -93,6 +96,8 @@ namespace GameLogic.Models
             for (int i = 0; i < _armyCount; i++)
                 for (int j = 0; j < _unitTypeCount; j++)
                     _strategies[i * _armyCount + j] = armies[i].GetStrategy(j);
+
+            _spawnZones = spawnZones;
         }
 
         bool IBattleModel.OneOrZeroArmiesLeft(out int numLeft)

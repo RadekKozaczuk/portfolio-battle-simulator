@@ -2,18 +2,13 @@
 {
     public struct UnitModel
     {
-        // todo: convert all these variables into one int
-        // todo: id would take 10 bits max = 1024
-        // todo: unitType - 2 bits = 4 combinations
-        // todo: armyId - 2 bits = 4 comb
-        // todo: health - 10 bits = 1024
-        // todo: attacked - 1 bit
-
-        // todo: so health and healthDelta -> one int
-        // todo: id, unit Type, armyId and attacked -> one int
+        // todo: Health and HealthDelta -> one int
+        // todo: Id, UnitType, ArmyId and NearestEnemyId -> one int
         public readonly int Id;
         public readonly int UnitType;
         public readonly int ArmyId;
+        public int NearestEnemyId;
+
         public int Health;
 
         /// <summary>
@@ -22,7 +17,6 @@
         public int HealthDelta;
 
         public float AttackCooldown;
-        public int NearestEnemyId;
 
         public UnitModel(int id, int unitType, int armyId)
         {

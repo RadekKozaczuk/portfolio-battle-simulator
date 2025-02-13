@@ -401,11 +401,6 @@ namespace Core.Services
                             continue;
 
                         Type fieldType = info.FieldType;
-                        // if it is on the static list - inject statically
-                        // otherwise add to the dynamic list
-
-                        // if it is an array or a list then we don't know there no dynamic elements inside
-                        // if it is an interface 
 
                         if (fieldType.IsInterface)
                         {
@@ -423,10 +418,11 @@ namespace Core.Services
                             continue;
                         }
 
-                        // if an array
-                        if (fieldType.IsArray)
+                        // is an array or a generic list
+                        bool isList = fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>);
+                        if (fieldType.IsArray || isList)
                         {
-                            Type t = fieldType.GetElementType()!;
+                            Type t = isList ? fieldType.GetGenericArguments()[0] : fieldType.GetElementType()!;
 
                             // if on the dynamic list - add it
                             if (_dynamicInstances.TryGetValue(t, out DynamicInstance dynamicInstance))
@@ -438,24 +434,7 @@ namespace Core.Services
 
                             // direct injection to bypass type security check
                             Type t1 = type;
-                            info.SetValueDirect(__makeref(t1), instances.ToArray());
-                            continue;
-                        }
-
-                        // is a generic list
-                        if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
-                        {
-                            Type t = fieldType.GetGenericArguments()[0];
-
-                            // if on the dynamic list - add it
-                            if (_dynamicInstances.TryGetValue(t, out DynamicInstance dynamicInstance))
-                                dynamicInstance.DynamicDependencies.Add(type);
-
-                            IEnumerable<object> instances = from si in _staticInstances
-                                                            where t.IsInterface ? si.BoundInterface == t : si.Type == t
-                                                            select si.Instance;
-
-                            info.SetValue(type, instances);
+                            info.SetValueDirect(__makeref(t1), isList ? instances : instances.ToArray());
                         }
                         else // is a normal field
                         {

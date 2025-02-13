@@ -134,8 +134,6 @@ namespace Core.Services
 
             // now we should go through everything again
             CreateDynamicInstances(assemblies);
-
-            int gg = 65;
         }
 
         /// <summary>
@@ -291,7 +289,7 @@ namespace Core.Services
                 foreach (Type type in asm.GetTypes())
                 {
                     // ignore internal classes, enums
-                    if (type.IsEnum || type.IsNested || type.IsInterface || type.IsArray) // todo: check if array is ever even a thing at this point
+                    if (type.IsEnum || type.IsNested || type.IsInterface)
                         continue;
 
                     // filter out types created by the compiler f.e. "PrivateImplementationDetails"
@@ -301,19 +299,6 @@ namespace Core.Services
                     // Controllers are never abstract
                     if (type.IsAbstract)
                         continue;
-
-                    if (type.Name == "GameLogicViewModel")
-                    {
-                        // todo: when we are at GameLogicViewModel
-                        // todo: it has one field GameLogicMainController _mainController
-                        // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
-                        int fdg = 5; // todo: should have one dynamic field, has zero for now for some reason
-                    }
-
-                    if (type.Name == "GameLogicMainController")
-                    {
-                        int ff = 5;
-                    }
 
                     // todo: should ViewModels be even instantiated? Yes, they may have interfaces
                     // bind type in the container if it is a Controller or a ViewModel
@@ -349,8 +334,6 @@ namespace Core.Services
                                 if (elementType.IsInterface)
                                     // injection at this point is not possible as we don't know all the possibilities
                                     // is on the static instance list
-                                    //staticInstance = _staticInstances.Find(si => si.Type == elementType);
-
                                     // we must schedule it for later
                                     interfacesForLater.Add(elementType);
                             }
@@ -375,7 +358,7 @@ namespace Core.Services
                             // normal construction
                             object instance = constructors[0].Invoke(new object[] { });
 
-                            staticInstance = _staticInstances.Find(i => i.Type == type);
+                            staticInstance = _staticInstances.Find(si => si.Type == type);
                             if (staticInstance != null)
                                 throw new ArgumentException("Binding the same element twice is not allowed.");
 
@@ -407,6 +390,8 @@ namespace Core.Services
         /// </summary>
         static void InjectIntoStaticInstances()
         {
+            // Archer and Warrior should be able to be injected in this pass
+
             Type injectAttribute = typeof(InjectAttribute);
 
             foreach (StaticInstance instance in _staticInstances)
@@ -424,14 +409,6 @@ namespace Core.Services
                         continue;
 
                     Type fieldType = info.FieldType;
-
-                    if (fieldType.Name == "GameLogicViewModel")
-                    {
-                        // todo: when we are at GameLogicViewModel
-                        // todo: it has one field GameLogicMainController _mainController
-                        // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
-                        int fdg = 5; // todo: should have one dynamic field, has zero for now for some reason
-                    }
 
                     // if it is on the static list - inject statically
                     // otherwise add to the dynamic list
@@ -463,10 +440,7 @@ namespace Core.Services
                             // confirm dynamic
                         }
                     }
-                    
-                    
-                    
-                    
+
                     // then our job is to decide if the field is statically or dynamically injected
                     // todo: when we are at GameLogicViewModel
                     // todo: it has one field GameLogicMainController _mainController

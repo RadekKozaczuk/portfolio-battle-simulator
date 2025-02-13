@@ -16,7 +16,7 @@ namespace Core.Services
     /// <typeparam name="TScriptableObject">Always ScriptableObject type</typeparam>
     public static class DependencyInjectionService<TScriptableObject> where TScriptableObject : class
     {
-        class AwaitingConstruction
+        class DynamicConstruction
         {
             /// <summary>
             /// Constructor that creates the instance.
@@ -39,10 +39,28 @@ namespace Core.Services
             /// </summary>
             internal readonly List<object> Instances = new();
 
-            internal AwaitingConstruction(ConstructorInfo constructor, ParameterInfo[] parameters)
+            internal DynamicConstruction(ConstructorInfo constructor, ParameterInfo[] parameters)
             {
                 Constructor = constructor;
                 Parameters = parameters;
+            }
+        }
+
+        class StaticInstance
+        {
+            internal readonly Type Type;
+            internal readonly object Instance;
+
+            /// <summary>
+            /// If there are fields that bind by interface to this instance, this field will contain that interface.
+            /// </summary>
+            internal Type? BoundInterface;
+            internal readonly List<FieldInfo> DynamicFields = new();
+
+            internal StaticInstance(Type type, object instance)
+            {
+                Type = type;
+                Instance = instance;
             }
         }
 
@@ -51,13 +69,21 @@ namespace Core.Services
         /// If the controller is also bound to an interface it will be present on that list twice.
         /// Key is the instance's type and value is the instance itself.
         /// </summary>
-        static readonly Dictionary<Type, object> _staticInstances = new();
+        static readonly List<StaticInstance> _staticInstances = new();
+
+        /// <summary>
+        /// Key: type, Value: instance.
+        /// In the first pass instances are null.
+        /// Instances are constructed later.
+        /// In the final pass instance will never be null.
+        /// </summary>
+        static readonly Dictionary<Type, object?> _dynamicInstances = new();
 
         /// <summary>
         /// These instances are created every time <see cref="BindModel{T}"/> is called.
         /// Key is the instance's type and value is the instance itself.
         /// </summary>
-        static readonly Dictionary<Type, AwaitingConstruction> _dynamicInstances = new();
+        static readonly Dictionary<Type, DynamicConstruction> _dynamicConstructors = new();
 
         static readonly List<IInitializable> _initializables = new();
 
@@ -94,14 +120,22 @@ namespace Core.Services
             BindConfigsAndReactiveServices(assemblies, findConfig);
 
             // this creates all controllers/viewmodels that do not have parametrized constructors
-            CreateStaticInstances(assemblies);
+            FirstPass(assemblies);
 
             // goes through all static instances and inject into fields that need other static instances
+            // todo: when we are at GameLogicViewModel
+            // todo: it has one field GameLogicMainController _mainController
+            // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
             InjectIntoStaticInstances();
 
             // at this moment we have
             // - all configs injected
-            // - all static instances created
+            // - all static instances are created and injected
+
+            // now we should go through everything again
+            CreateDynamicInstances(assemblies);
+
+            int gg = 65;
         }
 
         /// <summary>
@@ -125,24 +159,24 @@ namespace Core.Services
                 _boundInterfaces.Add(typeof(T), new List<Type> {type});
         }
 
-        /// <summary>
-        /// Each time this method is called, all controllers and view models that rely on this model are reconstructed and reinjected.
-        /// </summary>
-        public static void BindModel<T>(object model)
+        public static void BindModel<T>(object model) => _boundModels.Add(typeof(T), model);
+
+        public static void ResolveBindings()
         {
-            _boundModels.Add(typeof(T), model);
+            bool atLeastOneCreated = false;
 
             // go through all awaiting injections, then recreate and inject them
-            foreach (KeyValuePair<Type, AwaitingConstruction> kvp in _dynamicInstances)
+            foreach (KeyValuePair<Type, DynamicConstruction> kvp in _dynamicConstructors)
             {
-                AwaitingConstruction ac = kvp.Value;
+                DynamicConstruction dc = kvp.Value;
                 bool allParams = true;
-                object[] actualParams = new object[ac.Parameters.Length];
+                object[] parameters = new object[dc.Parameters.Length];
 
-                for (int i = 0; i < ac.Parameters.Length; i++)
-                    if (_boundModels.TryGetValue(ac.Parameters[i].ParameterType, out object m))
+                // todo: for now, we only search in models
+                for (int i = 0; i < dc.Parameters.Length; i++)
+                    if (_boundModels.TryGetValue(dc.Parameters[i].ParameterType, out object m))
                     {
-                        actualParams[i] = m;
+                        parameters[i] = m;
                     }
                     else
                     {
@@ -153,15 +187,16 @@ namespace Core.Services
                 if (!allParams)
                     continue;
 
-                object injectedFieldInstance = ac.Constructor.Invoke(actualParams);
+                object instance = dc.Constructor.Invoke(parameters);
 
-                // injection
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < ac.Fields.Count; i++)
-                {
-                    FieldInfo info = ac.Fields[i];
+                _dynamicInstances.Add(instance.GetType(), instance);
+                atLeastOneCreated = true;
+            }
 
-                }
+            // if at least new awaiting binding has been constructed - go through everything and resolve
+            if (atLeastOneCreated)
+            {
+                // go through all dynamic and inject what you can
             }
         }
 
@@ -240,10 +275,341 @@ namespace Core.Services
                 }
         }
 
-        static void CreateStaticInstances(Assembly[] assemblies)
+        /// <summary>
+        /// Creates static instances.
+        /// For dynamic instances only creates entries without the instance.
+        /// </summary>
+        /// <param name="assemblies"></param>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        static void FirstPass(Assembly[] assemblies)
+        {
+            Type injectAttribute = typeof(InjectAttribute);
+            var interfacesForLater = new List<Type>(); // field type
+
+            foreach (Assembly asm in assemblies)
+                foreach (Type type in asm.GetTypes())
+                {
+                    // ignore internal classes, enums
+                    if (type.IsEnum || type.IsNested || type.IsInterface || type.IsArray) // todo: check if array is ever even a thing at this point
+                        continue;
+
+                    // filter out types created by the compiler f.e. "PrivateImplementationDetails"
+                    if (type.Namespace == null)
+                        continue;
+
+                    // Controllers are never abstract
+                    if (type.IsAbstract)
+                        continue;
+
+                    if (type.Name == "GameLogicViewModel")
+                    {
+                        // todo: when we are at GameLogicViewModel
+                        // todo: it has one field GameLogicMainController _mainController
+                        // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
+                        int fdg = 5; // todo: should have one dynamic field, has zero for now for some reason
+                    }
+
+                    if (type.Name == "GameLogicMainController")
+                    {
+                        int ff = 5;
+                    }
+
+                    // todo: should ViewModels be even instantiated? Yes, they may have interfaces
+                    // bind type in the container if it is a Controller or a ViewModel
+                    // ReSharper disable once InvertIf
+                    if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
+                    {
+                        FieldInfo[] fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                        StaticInstance? staticInstance;
+
+                        // search for interfaces
+                        foreach (FieldInfo info in fields)
+                        {
+                            // is injectable
+                            if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
+                                continue;
+
+                            if (info.FieldType.IsInterface)
+                            {
+                                // is on the static instance list
+                                staticInstance = _staticInstances.Find(si => si.Type == info.FieldType);
+
+                                // schedule for later
+                                if (staticInstance == null)
+                                    interfacesForLater.Add(info.FieldType);
+                                else
+                                    staticInstance.BoundInterface = info.FieldType;
+                            }
+                            else if (info.FieldType.IsArray)
+                            {
+                                Type elementType = info.FieldType.GetElementType()!;
+
+                                // array of interfaces
+                                if (elementType.IsInterface)
+                                    // injection at this point is not possible as we don't know all the possibilities
+                                    // is on the static instance list
+                                    //staticInstance = _staticInstances.Find(si => si.Type == elementType);
+
+                                    // we must schedule it for later
+                                    interfacesForLater.Add(elementType);
+                            }
+                        }
+
+                        // constructor zero
+                        ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                        if (constructors.Length == 0) // must be present
+                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
+
+                        ConstructorInfo constructor = constructors[0];
+
+                        // check if constructor injection
+                        if (constructor.GetParameters().Length > 0)
+                        {
+                            // we know this type is dynamic, but we do not have the instance yet
+                            _dynamicInstances.Add(type, null);
+                        }
+                        else
+                        {
+                            // normal construction
+                            object instance = constructors[0].Invoke(new object[] { });
+
+                            staticInstance = _staticInstances.Find(i => i.Type == type);
+                            if (staticInstance != null)
+                                throw new ArgumentException("Binding the same element twice is not allowed.");
+
+                            _staticInstances.Add(new StaticInstance(type, instance));
+                            SignalService.AddReactiveInstantiatable(instance);
+
+                            if (typeof(IInitializable).IsAssignableFrom(type))
+                                _initializables.Add((IInitializable)instance);
+                        }
+                    }
+                }
+
+            foreach (Type fieldType in interfacesForLater)
+                // can be more than one
+                foreach (StaticInstance staticInstance in _staticInstances)
+                {
+                    // go through type's interfaces and if any of them matches fieldType then add it to the bound
+                    Type[] interfaces = staticInstance.Type.GetInterfaces();
+                    Type? _ = interfaces.FirstOrDefault(type => type == fieldType);
+
+                    if (_ != null)
+                        staticInstance.BoundInterface = fieldType;
+                }
+        }
+
+        /// <summary>
+        /// Inject static instances into fields that needs them.
+        /// Other fields are ignored.
+        /// </summary>
+        static void InjectIntoStaticInstances()
         {
             Type injectAttribute = typeof(InjectAttribute);
 
+            foreach (StaticInstance instance in _staticInstances)
+            {
+                FieldInfo[] fields = instance.Type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    // we go through all injectable fields
+                    FieldInfo info = fields[i];
+
+                    // is injectable
+                    if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
+                        continue;
+
+                    Type fieldType = info.FieldType;
+
+                    if (fieldType.Name == "GameLogicViewModel")
+                    {
+                        // todo: when we are at GameLogicViewModel
+                        // todo: it has one field GameLogicMainController _mainController
+                        // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
+                        int fdg = 5; // todo: should have one dynamic field, has zero for now for some reason
+                    }
+
+                    // if it is on the static list - inject statically
+                    // otherwise add to the dynamic list
+
+                    // if it is an array or a list then we don't know there no dynamic elements inside
+                    // if it is an interface 
+
+                    // if an array, a list, or an interface 
+                    if (fieldType.IsArray
+                        || fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>)
+                        || fieldType.IsInterface)
+                    {
+                        // not possible to determine
+                        // todo: for interface we could determine - we just have to collect that data when we go through static instances
+                        // todo: we first need to know if there are any [Inject] fields that are interfaces
+                        // todo: maybe we should list them somewhere?
+                    }
+                    else
+                    {
+                        StaticInstance? qq = _staticInstances.Find(si => si.Type == fieldType);
+                        // possible to determine
+                        if (qq != null)
+                        {
+                            // confirm static
+                            InjectStatically(fieldType, info, instance.Instance);
+                        }
+                        else
+                        {
+                            // confirm dynamic
+                        }
+                    }
+                    
+                    
+                    
+                    
+                    // then our job is to decide if the field is statically or dynamically injected
+                    // todo: when we are at GameLogicViewModel
+                    // todo: it has one field GameLogicMainController _mainController
+                    // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
+                    bool isDynamic = IsDynamicallyInjected(fieldType);
+
+                    if (isDynamic)
+                        instance.DynamicFields.Add(info); // add it for later
+                    else
+                        InjectStatically(fieldType, info, instance.Instance);
+                }
+            }
+        }
+
+        static void InjectStatically(Type fieldType, FieldInfo info, object instance)
+        {
+            // the field is an array
+            if (fieldType.IsArray)
+            {
+                Type elementType = fieldType.GetElementType()!;
+
+                // array of interfaces
+                if (elementType.IsInterface)
+                {
+                    if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
+                        throw new Exception($"Could not find binding for the field {info.Name}");
+
+                    object[] instances = new object[types.Count];
+
+                    for (int j = 0; j < types.Count; j++)
+                    {
+                        StaticInstance? rr = _staticInstances.Find(si => si.Type == fieldType);
+                        instances[j] = rr.Instance;
+                    }
+
+                    info.SetValue(instance, instances);
+                }
+                else
+                {
+                    // impossible state
+                    // todo: in the future could be abstract class
+                }
+
+                return;
+            }
+
+            // the field is a list
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                Type elementType = fieldType.GetGenericArguments()[0];
+
+                if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
+                    throw new Exception($"Could not find binding for the field {info.Name}");
+
+                // todo: what if some of these require constructor injection?
+                // todo: should we inject only some of them? What about order? The rest will be null or not present? 
+                //info.SetValue(instance, types.Select(t => _staticInstances[t].Instance).ToList());
+
+                return;
+            }
+
+            StaticInstance value;
+
+            // the field is an interface
+            if (fieldType.IsInterface)
+            {
+                if (!_boundInterfaces.TryGetValue(fieldType, out List<Type> types))
+                    throw new Exception($"Could not find binding for the field {info.Name}");
+
+                Assert.IsTrue(types.Count == 1,
+                              "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
+
+                StaticInstance? staticInstance = _staticInstances.Find(si => si.Type == fieldType);
+
+                if (staticInstance != null)
+                    info.SetValue(instance, staticInstance.Instance);
+
+                return;
+            }
+
+            StaticInstance? ww = _staticInstances.Find(si => si.Type == fieldType);
+
+            // the field is a normal field
+            if (ww != null)
+                info.SetValue(instance, ww.Instance);
+        }
+
+        /// <summary>
+        /// True - dynamic.
+        /// False - static.
+        /// </summary>
+        static bool IsDynamicallyInjected(Type fieldType)
+        {
+            // generally to be statically injected you must be on a static list that's it
+            if (fieldType.IsArray)
+            {
+                Type elementType = fieldType.GetElementType()!;
+
+                // array of interfaces
+                if (elementType.IsInterface)
+                {
+                    // check if we have that interface
+                    if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
+                        throw new Exception($"Could not find binding for the field {fieldType.Name}");
+
+                    // we have - check if at least one type is on the dynamic list which would mean the field is dynamic
+                    return types.Any(type => _dynamicConstructors.TryGetValue(type, out _));
+                }
+                else
+                {
+                    throw new Exception("Impossible state");
+                }
+            }
+
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                Type elementType = fieldType.GetGenericArguments()[0];
+
+                if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
+                    throw new Exception($"Could not find binding for the field {fieldType.Name}");
+
+                // we have - check if at least one type is on the dynamic list which would mean the field is dynamic
+                return types.Any(type => _dynamicConstructors.TryGetValue(type, out _));
+            }
+
+            // the field is an interface
+            if (fieldType.IsInterface)
+            {
+                if (!_boundInterfaces.TryGetValue(fieldType, out List<Type> types))
+                    throw new Exception($"Could not find binding for the field {fieldType.Name}");
+
+                Assert.IsTrue(types.Count == 1,
+                              "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
+
+                return _dynamicConstructors.TryGetValue(types[0], out _);
+            }
+
+            return _dynamicConstructors.TryGetValue(fieldType, out _);
+        }
+
+        // go through everything and create awaitable
+        static void CreateDynamicInstances(Assembly[] assemblies)
+        {
             foreach (Assembly asm in assemblies)
                 foreach (Type type in asm.GetTypes())
                 {
@@ -259,8 +625,6 @@ namespace Core.Services
                     if (type.IsAbstract)
                         continue;
 
-                    // todo: should ViewModels be even instantiated? Yes, they may have interfaces
-                    // bind type in the container if it is a Controller or a ViewModel
                     // ReSharper disable once InvertIf
                     if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
                     {
@@ -270,116 +634,14 @@ namespace Core.Services
                             throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
 
                         ConstructorInfo constructor = constructors[0];
+                        ParameterInfo[] param = constructor.GetParameters();
 
-                        // todo: tak naprawde jedynie jaka rzecz sie liczy to ilosc parametrow a nie atrybut
-                        // check if constructor injection
-                        if (constructor.GetCustomAttributes(injectAttribute, false).Length > 0)
+                        if (param.Length == 0)
                             continue;
 
-                        // normal construction
-                        object instance = constructors[0].Invoke(new object[] { });
-
-                        if (_staticInstances.TryGetValue(type, out object _))
-                            throw new ArgumentException("Binding the same element twice is not allowed.");
-
-                        _staticInstances.Add(type, instance);
-                        SignalService.AddReactiveInstantiatable(instance);
-
-                        if (typeof(IInitializable).IsAssignableFrom(type))
-                            _initializables.Add((IInitializable)instance);
+                        _dynamicConstructors.Add(type, new DynamicConstruction(constructor, param));
                     }
                 }
-        }
-
-        /// <summary>
-        /// Inject static instances into fields that needs them.
-        /// Other fields are ignored.
-        /// </summary>
-        static void InjectIntoStaticInstances()
-        {
-            foreach ((Type instanceType, object instance) in _staticInstances)
-            {
-                Type injectAttribute = typeof(InjectAttribute);
-                FieldInfo[] fields = instanceType.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (int index = 0; index < fields.Length; index++)
-                {
-                    FieldInfo info = fields[index];
-                    if (info.IsConst())
-                        continue;
-
-                    // is injectable
-                    if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
-                        continue;
-
-                    Type fieldType = info.FieldType;
-
-                    // the field is an array
-                    if (fieldType.IsArray)
-                    {
-                        Type elementType = fieldType.GetElementType()!;
-
-                        // array of interfaces
-                        if (elementType.IsInterface)
-                        {
-                            if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                                throw new Exception($"Could not find binding for the field {info.Name}");
-
-                            object[] instances = new object[types.Count];
-
-                            for (int i = 0; i < types.Count; i++)
-                                instances[i] = _staticInstances[types[i]];
-
-                            info.SetValue(instance, instances);
-                        }
-                        else
-                        {
-                            // impossible state
-                            // todo: in the future could be abstract class
-                        }
-
-                        continue;
-                    }
-
-                    // the field is a list
-                    if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
-                    {
-                        Type elementType = fieldType.GetGenericArguments()[0];
-
-                        if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                            throw new Exception($"Could not find binding for the field {info.Name}");
-
-                        // todo: what if some of these require constructor injection?
-                        // todo: should we inject only some of them? What about order? The rest will be null or not present? 
-                        info.SetValue(instance, types.Select(t => _staticInstances[t]).ToList());
-
-                        continue;
-                    }
-
-                    object value;
-
-                    // the field is an interface
-                    if (fieldType.IsInterface)
-                    {
-                        if (!_boundInterfaces.TryGetValue(fieldType, out List<Type> types))
-                            throw new Exception($"Could not find binding for the field {info.Name}");
-
-                        Assert.IsTrue(types.Count == 1,
-                                      "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
-
-                        _staticInstances.TryGetValue(types[0], out value);
-                        info.SetValue(instance, value);
-
-                        continue;
-                    }
-
-                    // the field is a normal field
-                    _staticInstances.TryGetValue(fieldType, out value);
-                    info.SetValue(instance, value);
-
-                }
-            }
         }
     }
 }

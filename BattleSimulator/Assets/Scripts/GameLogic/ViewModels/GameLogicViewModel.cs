@@ -45,6 +45,7 @@ namespace GameLogic.ViewModels
         {
             IBattleModel model = new BattleModel(armies, spawnZones);
             DependencyInjectionService<ScriptableObject>.BindModel<IBattleModel>(model);
+            DependencyInjectionService<ScriptableObject>.ResolveBindings();
         }
 
         public static void BindControllers()

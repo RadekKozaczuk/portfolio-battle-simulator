@@ -34,7 +34,7 @@ namespace GameLogic.Controllers
         IBattleModel _model;
 
         [Preserve]
-        internal UpdateArmyCenterController() { } // todo: in the future it should be private and injected
+        UpdateArmyCenterController() { }
 
         public void CustomUpdate()
         {

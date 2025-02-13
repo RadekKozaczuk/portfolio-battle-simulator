@@ -126,7 +126,7 @@ namespace Core.Services
             // todo: when we are at GameLogicViewModel
             // todo: it has one field GameLogicMainController _mainController
             // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
-            InjectIntoStaticInstances();
+            InjectStaticInstances(assemblies);
 
             // at this moment we have
             // - all configs injected
@@ -275,11 +275,10 @@ namespace Core.Services
 
         /// <summary>
         /// Creates static instances.
+        /// calls SignalService.AddReactiveInstantiatable(instance); on these instances.
+        /// adds them to Initializable list
         /// For dynamic instances only creates entries without the instance.
         /// </summary>
-        /// <param name="assemblies"></param>
-        /// <exception cref="Exception"></exception>
-        /// <exception cref="ArgumentException"></exception>
         static void FirstPass(Assembly[] assemblies)
         {
             Type injectAttribute = typeof(InjectAttribute);
@@ -373,6 +372,7 @@ namespace Core.Services
 
             foreach (Type fieldType in interfacesForLater)
                 // can be more than one
+                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
                 foreach (StaticInstance staticInstance in _staticInstances)
                 {
                     // go through type's interfaces and if any of them matches fieldType then add it to the bound
@@ -388,71 +388,85 @@ namespace Core.Services
         /// Inject static instances into fields that needs them.
         /// Other fields are ignored.
         /// </summary>
-        static void InjectIntoStaticInstances()
+        static void InjectStaticInstances(Assembly[] assemblies)
         {
             // Archer and Warrior should be able to be injected in this pass
 
             Type injectAttribute = typeof(InjectAttribute);
 
-            foreach (StaticInstance instance in _staticInstances)
-            {
-                FieldInfo[] fields = instance.Type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < fields.Length; i++)
+            foreach (Assembly asm in assemblies)
+                foreach (Type type in asm.GetTypes())
                 {
-                    // we go through all injectable fields
-                    FieldInfo info = fields[i];
+                    FieldInfo[] fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
-                    // is injectable
-                    if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
-                        continue;
-
-                    Type fieldType = info.FieldType;
-
-                    // if it is on the static list - inject statically
-                    // otherwise add to the dynamic list
-
-                    // if it is an array or a list then we don't know there no dynamic elements inside
-                    // if it is an interface 
-
-                    // if an array, a list, or an interface 
-                    if (fieldType.IsArray
-                        || fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>)
-                        || fieldType.IsInterface)
+                    // ReSharper disable once ForCanBeConvertedToForeach
+                    for (int j = 0; j < fields.Length; j++)
                     {
-                        // not possible to determine
-                        // todo: for interface we could determine - we just have to collect that data when we go through static instances
-                        // todo: we first need to know if there are any [Inject] fields that are interfaces
-                        // todo: maybe we should list them somewhere?
-                    }
-                    else
-                    {
-                        StaticInstance? qq = _staticInstances.Find(si => si.Type == fieldType);
-                        // possible to determine
-                        if (qq != null)
-                        {
-                            // confirm static
-                            InjectStatically(fieldType, info, instance.Instance);
-                        }
-                        else
-                        {
-                            // confirm dynamic
-                        }
-                    }
+                        // we go through all injectable fields
+                        FieldInfo info = fields[j];
 
-                    // then our job is to decide if the field is statically or dynamically injected
-                    // todo: when we are at GameLogicViewModel
-                    // todo: it has one field GameLogicMainController _mainController
-                    // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
-                    bool isDynamic = IsDynamicallyInjected(fieldType);
+                        // is injectable
+                        if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
+                            continue;
 
-                    if (isDynamic)
-                        instance.DynamicFields.Add(info); // add it for later
-                    else
-                        InjectStatically(fieldType, info, instance.Instance);
+                        Type fieldType = info.FieldType;
+
+                        // if it is on the static list - inject statically
+                        // otherwise add to the dynamic list
+
+                        // if it is an array or a list then we don't know there no dynamic elements inside
+                        // if it is an interface 
+
+                        if (fieldType.IsInterface)
+                        {
+                            List<StaticInstance> instances = _staticInstances.FindAll(si => si.BoundInterface != null && si.BoundInterface == fieldType);
+
+                            // must be one
+                            Assert.IsTrue(instances.Count == 1, "Found more than one matching instances. Should be one.");
+
+                            //fieldType
+                            info.SetValue(type, _staticInstances[0].Instance);
+                            continue;
+                        }
+
+                        // if an array
+                        if (fieldType.IsArray)
+                        {
+                            Type t = fieldType.GetElementType()!;
+
+                            IEnumerable<object> instances = from si in _staticInstances
+                                                            where t.IsInterface ? si.BoundInterface == t : si.Type == t
+                                                            select si.Instance;
+
+                            // direct injection to bypass type security check
+                            Type t1 = type;
+                            info.SetValueDirect(__makeref(t1), instances.ToArray());
+                            continue;
+                        }
+
+                        // is a generic list
+                        if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+                        {
+                            Type t = fieldType.GetGenericArguments()[0];
+
+                            IEnumerable<object> instances = from si in _staticInstances
+                                                            where t.IsInterface ? si.BoundInterface == t : si.Type == t
+                                                            select si.Instance;
+
+                            info.SetValue(type, instances);
+                        }
+                        else // is a normal field
+                        {
+                            List<StaticInstance> instances = _staticInstances.FindAll(si => si.Type == fieldType);
+
+                            // must be zero (dynamic instance) or one (static instance)
+                            Assert.IsTrue(instances.Count is 0 or 1, "Found more than one matching instances. Should be one.");
+
+                            if (instances.Count == 1)
+                                info.SetValue(type, instances[0].Instance);
+                        }
+                    }
                 }
-            }
         }
 
         static void InjectStatically(Type fieldType, FieldInfo info, object instance)

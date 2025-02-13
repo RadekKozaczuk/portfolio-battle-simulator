@@ -16,7 +16,7 @@ namespace Core.Services
     /// <typeparam name="TScriptableObject">Always ScriptableObject type</typeparam>
     public static class DependencyInjectionService<TScriptableObject> where TScriptableObject : class
     {
-        class DynamicConstruction
+        class DynamicInstance
         {
             /// <summary>
             /// Constructor that creates the instance.
@@ -28,18 +28,11 @@ namespace Core.Services
             /// </summary>
             internal readonly ParameterInfo[] Parameters;
 
-            /// <summary>
-            /// Fields that this instance injects into.
-            /// </summary>
-            internal readonly List<FieldInfo> Fields = new();
+            // todo: could be filled in the 2nd pass
+            internal readonly List<Type> DynamicDependencies = new();
 
-            /// <summary>
-            /// Instances of controllers or viewmodels that have injectable fields awaiting to be injected.
-            /// Matches 1 to 1 <see cref="Fields"/>.
-            /// </summary>
-            internal readonly List<object> Instances = new();
-
-            internal DynamicConstruction(ConstructorInfo constructor, ParameterInfo[] parameters)
+            // todo: could be created in the 1st pass
+            internal DynamicInstance(ConstructorInfo constructor, ParameterInfo[] parameters)
             {
                 Constructor = constructor;
                 Parameters = parameters;
@@ -55,7 +48,9 @@ namespace Core.Services
             /// If there are fields that bind by interface to this instance, this field will contain that interface.
             /// </summary>
             internal Type? BoundInterface;
-            internal readonly List<FieldInfo> DynamicFields = new();
+
+            // todo: could be filled in the 2nd pass
+            internal readonly List<Type> DynamicDependencies = new();
 
             internal StaticInstance(Type type, object instance)
             {
@@ -77,20 +72,14 @@ namespace Core.Services
         /// Instances are constructed later.
         /// In the final pass instance will never be null.
         /// </summary>
-        static readonly Dictionary<Type, object?> _dynamicInstances = new();
-
-        /// <summary>
-        /// These instances are created every time <see cref="BindModel{T}"/> is called.
-        /// Key is the instance's type and value is the instance itself.
-        /// </summary>
-        static readonly Dictionary<Type, DynamicConstruction> _dynamicConstructors = new();
+        static readonly Dictionary<Type, DynamicInstance> _dynamicInstances = new();
 
         static readonly List<IInitializable> _initializables = new();
 
         /// <summary>
         /// Key is an interface. Value is a list of types that binds with that interface.
         /// </summary>
-        static readonly Dictionary<Type, List<Type>> _boundInterfaces = new();
+        static readonly Dictionary<Type, List<Type>> _boundInterfaces = new(); // todo: probably not needed
 
         /// <summary>
         /// Key: Constructor parameter's type.
@@ -126,7 +115,7 @@ namespace Core.Services
             // todo: when we are at GameLogicViewModel
             // todo: it has one field GameLogicMainController _mainController
             // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
-            InjectStaticInstances(assemblies);
+            SecondPass(assemblies);
 
             // at this moment we have
             // - all configs injected
@@ -164,9 +153,9 @@ namespace Core.Services
             bool atLeastOneCreated = false;
 
             // go through all awaiting injections, then recreate and inject them
-            foreach (KeyValuePair<Type, DynamicConstruction> kvp in _dynamicConstructors)
+            foreach (KeyValuePair<Type, DynamicInstance> kvp in _dynamicInstances)
             {
-                DynamicConstruction dc = kvp.Value;
+                DynamicInstance dc = kvp.Value;
                 bool allParams = true;
                 object[] parameters = new object[dc.Parameters.Length];
 
@@ -187,7 +176,7 @@ namespace Core.Services
 
                 object instance = dc.Constructor.Invoke(parameters);
 
-                _dynamicInstances.Add(instance.GetType(), instance);
+                //_dynamicInstances.Add(instance.GetType(), instance);
                 atLeastOneCreated = true;
             }
 
@@ -345,12 +334,13 @@ namespace Core.Services
                             throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
 
                         ConstructorInfo constructor = constructors[0];
+                        ParameterInfo[] ctorParams = constructor.GetParameters();
 
                         // check if constructor injection
-                        if (constructor.GetParameters().Length > 0)
+                        if (ctorParams.Length > 0)
                         {
                             // we know this type is dynamic, but we do not have the instance yet
-                            _dynamicInstances.Add(type, null);
+                            _dynamicInstances.Add(type, new DynamicInstance(constructor, ctorParams));
                         }
                         else
                         {
@@ -388,7 +378,7 @@ namespace Core.Services
         /// Inject static instances into fields that needs them.
         /// Other fields are ignored.
         /// </summary>
-        static void InjectStaticInstances(Assembly[] assemblies)
+        static void SecondPass(Assembly[] assemblies)
         {
             // Archer and Warrior should be able to be injected in this pass
 
@@ -397,20 +387,20 @@ namespace Core.Services
             foreach (Assembly asm in assemblies)
                 foreach (Type type in asm.GetTypes())
                 {
+                    // go through all fields
                     FieldInfo[] fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
                     // ReSharper disable once ForCanBeConvertedToForeach
-                    for (int j = 0; j < fields.Length; j++)
+                    for (int i = 0; i < fields.Length; i++)
                     {
                         // we go through all injectable fields
-                        FieldInfo info = fields[j];
+                        FieldInfo info = fields[i];
 
                         // is injectable
                         if (Attribute.GetCustomAttributes(info, injectAttribute, false).Length == 0)
                             continue;
 
                         Type fieldType = info.FieldType;
-
                         // if it is on the static list - inject statically
                         // otherwise add to the dynamic list
 
@@ -421,11 +411,15 @@ namespace Core.Services
                         {
                             List<StaticInstance> instances = _staticInstances.FindAll(si => si.BoundInterface != null && si.BoundInterface == fieldType);
 
-                            // must be one
-                            Assert.IsTrue(instances.Count == 1, "Found more than one matching instances. Should be one.");
+                            // zero: dynamic, 1: static, more than one: invalid state
+                            Assert.IsTrue(instances.Count is 0 or 1, "Found more than one matching instances. Should be zero or one.");
 
-                            //fieldType
-                            info.SetValue(type, _staticInstances[0].Instance);
+                            // must be dynamic
+                            if (instances.Count == 0)
+                                AddDynamicDependency(type, fieldType);
+                            else
+                                info.SetValue(type, instances[0].Instance);
+
                             continue;
                         }
 
@@ -433,6 +427,10 @@ namespace Core.Services
                         if (fieldType.IsArray)
                         {
                             Type t = fieldType.GetElementType()!;
+
+                            // if on the dynamic list - add it
+                            if (_dynamicInstances.TryGetValue(t, out DynamicInstance dynamicInstance))
+                                dynamicInstance.DynamicDependencies.Add(type);
 
                             IEnumerable<object> instances = from si in _staticInstances
                                                             where t.IsInterface ? si.BoundInterface == t : si.Type == t
@@ -449,6 +447,10 @@ namespace Core.Services
                         {
                             Type t = fieldType.GetGenericArguments()[0];
 
+                            // if on the dynamic list - add it
+                            if (_dynamicInstances.TryGetValue(t, out DynamicInstance dynamicInstance))
+                                dynamicInstance.DynamicDependencies.Add(type);
+
                             IEnumerable<object> instances = from si in _staticInstances
                                                             where t.IsInterface ? si.BoundInterface == t : si.Type == t
                                                             select si.Instance;
@@ -459,146 +461,44 @@ namespace Core.Services
                         {
                             List<StaticInstance> instances = _staticInstances.FindAll(si => si.Type == fieldType);
 
-                            // must be zero (dynamic instance) or one (static instance)
+                            // zero: dynamic, 1: static, more than one: invalid state
                             Assert.IsTrue(instances.Count is 0 or 1, "Found more than one matching instances. Should be one.");
 
-                            if (instances.Count == 1)
+                            if (instances.Count == 0) // must be dynamic
+                                AddDynamicDependency(type, fieldType);
+                            else
                                 info.SetValue(type, instances[0].Instance);
                         }
                     }
                 }
         }
 
-        static void InjectStatically(Type fieldType, FieldInfo info, object instance)
+        static void AddDynamicDependency(Type type, Type fieldType)
         {
-            // the field is an array
-            if (fieldType.IsArray)
+            // ReSharper disable once InvertIf
+            if (_dynamicInstances.TryGetValue(fieldType, out DynamicInstance _))
             {
-                Type elementType = fieldType.GetElementType()!;
-
-                // array of interfaces
-                if (elementType.IsInterface)
+                if (_dynamicInstances.TryGetValue(type, out DynamicInstance dynamicInstance))
                 {
-                    if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                        throw new Exception($"Could not find binding for the field {info.Name}");
-
-                    object[] instances = new object[types.Count];
-
-                    for (int j = 0; j < types.Count; j++)
-                    {
-                        StaticInstance? rr = _staticInstances.Find(si => si.Type == fieldType);
-                        instances[j] = rr.Instance;
-                    }
-
-                    info.SetValue(instance, instances);
+                    dynamicInstance.DynamicDependencies.Add(fieldType);
                 }
                 else
                 {
-                    // impossible state
-                    // todo: in the future could be abstract class
+                    // must be in static 
+                    StaticInstance staticInstance = _staticInstances.Find(si => si.Type == type);
+                    staticInstance.DynamicDependencies.Add(fieldType);
                 }
 
                 return;
             }
 
-            // the field is a list
-            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                Type elementType = fieldType.GetGenericArguments()[0];
-
-                if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                    throw new Exception($"Could not find binding for the field {info.Name}");
-
-                // todo: what if some of these require constructor injection?
-                // todo: should we inject only some of them? What about order? The rest will be null or not present? 
-                //info.SetValue(instance, types.Select(t => _staticInstances[t].Instance).ToList());
-
-                return;
-            }
-
-            StaticInstance value;
-
-            // the field is an interface
-            if (fieldType.IsInterface)
-            {
-                if (!_boundInterfaces.TryGetValue(fieldType, out List<Type> types))
-                    throw new Exception($"Could not find binding for the field {info.Name}");
-
-                Assert.IsTrue(types.Count == 1,
-                              "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
-
-                StaticInstance? staticInstance = _staticInstances.Find(si => si.Type == fieldType);
-
-                if (staticInstance != null)
-                    info.SetValue(instance, staticInstance.Instance);
-
-                return;
-            }
-
-            StaticInstance? ww = _staticInstances.Find(si => si.Type == fieldType);
-
-            // the field is a normal field
-            if (ww != null)
-                info.SetValue(instance, ww.Instance);
-        }
-
-        /// <summary>
-        /// True - dynamic.
-        /// False - static.
-        /// </summary>
-        static bool IsDynamicallyInjected(Type fieldType)
-        {
-            // generally to be statically injected you must be on a static list that's it
-            if (fieldType.IsArray)
-            {
-                Type elementType = fieldType.GetElementType()!;
-
-                // array of interfaces
-                if (elementType.IsInterface)
-                {
-                    // check if we have that interface
-                    if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                        throw new Exception($"Could not find binding for the field {fieldType.Name}");
-
-                    // we have - check if at least one type is on the dynamic list which would mean the field is dynamic
-                    return types.Any(type => _dynamicConstructors.TryGetValue(type, out _));
-                }
-                else
-                {
-                    throw new Exception("Impossible state");
-                }
-            }
-
-            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                Type elementType = fieldType.GetGenericArguments()[0];
-
-                if (!_boundInterfaces.TryGetValue(elementType, out List<Type> types))
-                    throw new Exception($"Could not find binding for the field {fieldType.Name}");
-
-                // we have - check if at least one type is on the dynamic list which would mean the field is dynamic
-                return types.Any(type => _dynamicConstructors.TryGetValue(type, out _));
-            }
-
-            // the field is an interface
-            if (fieldType.IsInterface)
-            {
-                if (!_boundInterfaces.TryGetValue(fieldType, out List<Type> types))
-                    throw new Exception($"Could not find binding for the field {fieldType.Name}");
-
-                Assert.IsTrue(types.Count == 1,
-                              "Multiple bindings detected. Dependency Injector could not resolve which one to bind.");
-
-                return _dynamicConstructors.TryGetValue(types[0], out _);
-            }
-
-            return _dynamicConstructors.TryGetValue(fieldType, out _);
+            throw new Exception("Invalid program state.");
         }
 
         // go through everything and create awaitable
         static void CreateDynamicInstances(Assembly[] assemblies)
         {
-            foreach (Assembly asm in assemblies)
+            /*foreach (Assembly asm in assemblies)
                 foreach (Type type in asm.GetTypes())
                 {
                     // ignore internal classes, enums
@@ -627,9 +527,9 @@ namespace Core.Services
                         if (param.Length == 0)
                             continue;
 
-                        _dynamicConstructors.Add(type, new DynamicConstruction(constructor, param));
+                        _dynamicInstances.Add(type, new DynamicInstance(constructor, param));
                     }
-                }
+                }*/
         }
     }
 }

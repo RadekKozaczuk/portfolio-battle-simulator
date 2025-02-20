@@ -23,10 +23,19 @@ namespace GameLogic.ViewModels
         [Preserve]
         GameLogicViewModel() { }
 
+        static bool _waited = false;
+
         public static void CustomUpdate()
         {
             if (GameStateService.CurrentState == GameState.Gameplay)
-                _mainController.CustomUpdate();
+            {
+                if (_waited)
+                    Debug.Log($"_mainController == null: {_mainController == null}");
+                else
+                    _waited = true;
+
+                //_mainController.CustomUpdate();
+            }
 
             PresentationViewModel.CustomUpdate();
         }
@@ -46,12 +55,6 @@ namespace GameLogic.ViewModels
             IBattleModel model = new BattleModel(armies, spawnZones);
             DependencyInjectionService<ScriptableObject>.BindModel<IBattleModel>(model);
             DependencyInjectionService<ScriptableObject>.ResolveBindings();
-        }
-
-        public static void BindControllers()
-        {
-            DependencyInjectionService<ScriptableObject>.BindInterface<IUnitController>(typeof(WarriorController));
-            DependencyInjectionService<ScriptableObject>.BindInterface<IUnitController>(typeof(ArcherController));
         }
     }
 }

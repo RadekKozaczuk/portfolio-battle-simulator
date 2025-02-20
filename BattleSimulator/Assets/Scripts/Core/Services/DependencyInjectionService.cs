@@ -28,10 +28,10 @@ namespace Core.Services
             /// </summary>
             internal readonly ParameterInfo[] Parameters;
 
-            // todo: could be filled in the 2nd pass
-            internal readonly List<Type> DynamicDependencies = new();
+            internal readonly List<FieldInfo> DynamicDependencies = new();
 
-            // todo: could be created in the 1st pass
+            internal object Instance;
+
             internal DynamicInstance(ConstructorInfo constructor, ParameterInfo[] parameters)
             {
                 Constructor = constructor;
@@ -49,8 +49,7 @@ namespace Core.Services
             /// </summary>
             internal Type? BoundInterface;
 
-            // todo: could be filled in the 2nd pass
-            internal readonly List<Type> DynamicDependencies = new();
+            internal readonly List<FieldInfo> DynamicDependencies = new();
 
             internal StaticInstance(Type type, object instance)
             {
@@ -75,11 +74,6 @@ namespace Core.Services
         static readonly Dictionary<Type, DynamicInstance> _dynamicInstances = new();
 
         static readonly List<IInitializable> _initializables = new();
-
-        /// <summary>
-        /// Key is an interface. Value is a list of types that binds with that interface.
-        /// </summary>
-        static readonly Dictionary<Type, List<Type>> _boundInterfaces = new(); // todo: probably not needed
 
         /// <summary>
         /// Key: Constructor parameter's type.
@@ -116,75 +110,63 @@ namespace Core.Services
             // todo: it has one field GameLogicMainController _mainController
             // todo: this field is then identified as static even tho it is not - it has a parameterized constructor
             SecondPass(assemblies);
-
-            // at this moment we have
-            // - all configs injected
-            // - all static instances are created and injected
-
-            // now we should go through everything again
-            CreateDynamicInstances(assemblies);
-        }
-
-        /// <summary>
-        /// Associate a Controller/ViewModel with an interface. Many types can be bound to the same interface.
-        /// In such case each field the type injects into must be an array or a list.
-        /// Injected instances will be in present in the collection in the same order they were bound.
-        /// </summary>
-        /// <param name="type">The type of the controller or the viewmodel you want to associate (bind) with the interface.
-        /// Must implement the interface.</param>
-        /// <typeparam name="T">Type of the interface you want to bind to</typeparam>
-        public static void BindInterface<T>(Type type)
-        {
-            Assert.IsTrue(typeof(T).IsInterface, "The generic type parameter {typeof(T).Name} must be an interface.");
-
-            if (_boundInterfaces.TryGetValue(typeof(T), out List<Type> list))
-            {
-                Assert.IsFalse(list.Contains(type), "Binding the same element twice is not allowed.");
-                list.Add(type);
-            }
-            else
-                _boundInterfaces.Add(typeof(T), new List<Type> {type});
         }
 
         public static void BindModel<T>(object model) => _boundModels.Add(typeof(T), model);
 
         public static void ResolveBindings()
         {
-            bool atLeastOneCreated = false;
-
-            // go through all awaiting injections, then recreate and inject them
+            // create instances
             foreach (KeyValuePair<Type, DynamicInstance> kvp in _dynamicInstances)
             {
-                DynamicInstance dc = kvp.Value;
-                bool allParams = true;
-                object[] parameters = new object[dc.Parameters.Length];
+                ParameterInfo[] ctorParams = kvp.Value.Parameters;
+                ConstructorInfo ctor = kvp.Value.Constructor;
 
-                // todo: for now, we only search in models
-                for (int i = 0; i < dc.Parameters.Length; i++)
-                    if (_boundModels.TryGetValue(dc.Parameters[i].ParameterType, out object m))
-                    {
-                        parameters[i] = m;
-                    }
+                object[] paramValues = new object[ctorParams.Length];
+
+                for (int i = 0; i < ctorParams.Length; i++)
+                {
+                    Type type = ctorParams[i].ParameterType;
+
+                    if (_boundModels.TryGetValue(type, out object value))
+                        paramValues[i] = value;
                     else
                     {
-                        allParams = false;
-                        break;
+                        // todo: probably invalid state
                     }
+                }
 
-                if (!allParams)
-                    continue;
-
-                object instance = dc.Constructor.Invoke(parameters);
-
-                //_dynamicInstances.Add(instance.GetType(), instance);
-                atLeastOneCreated = true;
+                object instance = ctor.Invoke(paramValues);
+                kvp.Value.Instance = instance;
             }
 
-            // if at least new awaiting binding has been constructed - go through everything and resolve
-            if (atLeastOneCreated)
-            {
-                // go through all dynamic and inject what you can
-            }
+            // todo: something is wrong here
+            // inject instances
+            foreach (StaticInstance staticInstance in _staticInstances)
+                foreach (FieldInfo info in staticInstance.DynamicDependencies)
+                    if (_dynamicInstances.TryGetValue(info.FieldType, out DynamicInstance dynamicInstance))
+                    {
+                        //staticInstance.Instance.GetType()
+                        //Type type = staticInstance.Instance.GetType();
+
+                        //FieldInfo field = type.GetField(info.Name);                        // Get field info
+                        //field.SetValue(staticInstance.Instance, dynamicInstance.Instance); // Set value
+
+                        const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
+                        FieldInfo? qwe = staticInstance.Type.GetField(info.Name, Flags);
+                        qwe!.SetValue(null, dynamicInstance.Instance);
+
+                        //Type t = info.FieldType;
+                        //info.SetValueDirect(__makeref(t), dynamicInstance.Instance);
+                        //info.SetValue(staticInstance.Instance, dynamicInstance.Instance);
+
+                        // field is static therefore we pass null as the instance
+                        //info.SetValue(null, dynamicInstance.Instance);
+                    }
+                    else
+                        throw new Exception("Nothing happens");
+
+            int ggg = 5;
         }
 
         /// <summary>
@@ -411,7 +393,7 @@ namespace Core.Services
 
                             // must be dynamic
                             if (instances.Count == 0)
-                                AddDynamicDependency(type, fieldType);
+                                AddDynamicDependency(type, info);
                             else
                                 info.SetValue(type, instances[0].Instance);
 
@@ -426,7 +408,7 @@ namespace Core.Services
 
                             // if on the dynamic list - add it
                             if (_dynamicInstances.TryGetValue(t, out DynamicInstance dynamicInstance))
-                                dynamicInstance.DynamicDependencies.Add(type);
+                                dynamicInstance.DynamicDependencies.Add(info);
 
                             IEnumerable<object> instances = from si in _staticInstances
                                                             where t.IsInterface ? si.BoundInterface == t : si.Type == t
@@ -444,7 +426,7 @@ namespace Core.Services
                             Assert.IsTrue(instances.Count is 0 or 1, "Found more than one matching instances. Should be one.");
 
                             if (instances.Count == 0) // must be dynamic
-                                AddDynamicDependency(type, fieldType);
+                                AddDynamicDependency(type, info);
                             else
                                 info.SetValue(type, instances[0].Instance);
                         }
@@ -452,63 +434,23 @@ namespace Core.Services
                 }
         }
 
-        static void AddDynamicDependency(Type type, Type fieldType)
+        static void AddDynamicDependency(Type type, FieldInfo fieldInfo)
         {
-            // ReSharper disable once InvertIf
-            if (_dynamicInstances.TryGetValue(fieldType, out DynamicInstance _))
+            // the field is not a dynamic dependency
+            if (!_dynamicInstances.TryGetValue(fieldInfo.FieldType, out DynamicInstance _))
+                throw new Exception("Invalid program state.");
+
+            // check if the class is a dynamic dependency
+            if (_dynamicInstances.TryGetValue(type, out DynamicInstance dynamicInstance))
             {
-                if (_dynamicInstances.TryGetValue(type, out DynamicInstance dynamicInstance))
-                {
-                    dynamicInstance.DynamicDependencies.Add(fieldType);
-                }
-                else
-                {
-                    // must be in static 
-                    StaticInstance staticInstance = _staticInstances.Find(si => si.Type == type);
-                    staticInstance.DynamicDependencies.Add(fieldType);
-                }
-
-                return;
+                dynamicInstance.DynamicDependencies.Add(fieldInfo);
             }
-
-            throw new Exception("Invalid program state.");
-        }
-
-        // go through everything and create awaitable
-        static void CreateDynamicInstances(Assembly[] assemblies)
-        {
-            /*foreach (Assembly asm in assemblies)
-                foreach (Type type in asm.GetTypes())
-                {
-                    // ignore internal classes, enums
-                    if (type.IsEnum || type.IsNested || type.IsInterface || type.IsArray)
-                        continue;
-
-                    // filter out types created by the compiler f.e. "PrivateImplementationDetails"
-                    if (type.Namespace == null)
-                        continue;
-
-                    // Controllers are never abstract
-                    if (type.IsAbstract)
-                        continue;
-
-                    // ReSharper disable once InvertIf
-                    if (type.Namespace.EndsWith("Controllers") || type.Namespace.EndsWith("ViewModels") || type.Name.EndsWith("Controller"))
-                    {
-                        ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
-
-                        if (constructors.Length == 0)
-                            throw new Exception($"{type.Name} has no parameterless constructor. Please add one with the attribute [Preserve].");
-
-                        ConstructorInfo constructor = constructors[0];
-                        ParameterInfo[] param = constructor.GetParameters();
-
-                        if (param.Length == 0)
-                            continue;
-
-                        _dynamicInstances.Add(type, new DynamicInstance(constructor, param));
-                    }
-                }*/
+            else
+            {
+                // must be in static 
+                StaticInstance staticInstance = _staticInstances.Find(si => si.Type == type);
+                staticInstance.DynamicDependencies.Add(fieldInfo);
+            }
         }
     }
 }

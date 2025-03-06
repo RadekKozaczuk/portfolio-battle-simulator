@@ -145,28 +145,9 @@ namespace Core.Services
             foreach (StaticInstance staticInstance in _staticInstances)
                 foreach (FieldInfo info in staticInstance.DynamicDependencies)
                     if (_dynamicInstances.TryGetValue(info.FieldType, out DynamicInstance dynamicInstance))
-                    {
-                        //staticInstance.Instance.GetType()
-                        //Type type = staticInstance.Instance.GetType();
-
-                        //FieldInfo field = type.GetField(info.Name);                        // Get field info
-                        //field.SetValue(staticInstance.Instance, dynamicInstance.Instance); // Set value
-
-                        const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
-                        FieldInfo? qwe = staticInstance.Type.GetField(info.Name, Flags);
-                        qwe!.SetValue(null, dynamicInstance.Instance);
-
-                        //Type t = info.FieldType;
-                        //info.SetValueDirect(__makeref(t), dynamicInstance.Instance);
-                        //info.SetValue(staticInstance.Instance, dynamicInstance.Instance);
-
                         // field is static therefore we pass null as the instance
-                        //info.SetValue(null, dynamicInstance.Instance);
-                    }
-                    else
-                        throw new Exception("Nothing happens");
+                        info.SetValue(null, dynamicInstance.Instance);
 
-            int ggg = 5;
         }
 
         /// <summary>

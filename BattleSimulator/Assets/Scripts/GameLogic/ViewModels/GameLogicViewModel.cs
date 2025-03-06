@@ -18,24 +18,15 @@ namespace GameLogic.ViewModels
     public class GameLogicViewModel
     {
         [Inject]
-        static readonly GameLogicMainController _mainController;
+        static GameLogicMainController _mainController;
 
         [Preserve]
         GameLogicViewModel() { }
 
-        static bool _waited = false;
-
         public static void CustomUpdate()
         {
             if (GameStateService.CurrentState == GameState.Gameplay)
-            {
-                if (_waited)
-                    Debug.Log($"_mainController == null: {_mainController == null}");
-                else
-                    _waited = true;
-
-                //_mainController.CustomUpdate();
-            }
+                _mainController.CustomUpdate();
 
             PresentationViewModel.CustomUpdate();
         }

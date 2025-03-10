@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Core.Enums;
 using Core.Models;
 using GameLogic.Interfaces;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameLogic.Models
@@ -11,6 +12,7 @@ namespace GameLogic.Models
     class BattleModel : IBattleModel
     {
         int IBattleModel.ArmyCount => _armyCount;
+        Bounds[] IBattleModel.SpawnZones => _spawnZones;
 
         readonly int[] _armyStarts;
         readonly int[] _armyLengths;
@@ -25,7 +27,7 @@ namespace GameLogic.Models
         readonly UnitModel[] _units;
 
         readonly int _armyCount;
-        readonly int _unitTypeCount;
+        readonly int _unitTypeCount = Enum.GetNames(typeof(UnitType)).Length;
 
         /// <summary>
         /// By army.
@@ -33,8 +35,9 @@ namespace GameLogic.Models
         readonly int[] _aliveUnitCount;
 
         readonly Strategy[] _strategies;
+        readonly Bounds[] _spawnZones;
 
-        internal BattleModel(List<ArmyModel> armies)
+        internal BattleModel(List<ArmyModel> armies, Bounds[] spawnZones)
         {
             _armyCount = armies.Count;
             _aliveUnitCount = new int[_armyCount];
@@ -63,7 +66,7 @@ namespace GameLogic.Models
                 _armyLengthSums[armyId] = totalSum;
             }
 
-            _unitTypeCount = armies[0].UnitTypeCount; // this is equal for all armies
+            // could be probably calculated based on the enum's length
             _unitTypeStarts = new int[_armyCount * _unitTypeCount];
             _unitTypeLengths = new int[_armyCount * _unitTypeCount];
             _unitTypeLengthsSums = new int[_armyCount * _unitTypeCount];
@@ -74,7 +77,7 @@ namespace GameLogic.Models
                 {
                     int index = armyId * _unitTypeCount + unitTypeId;
                     _unitTypeStarts[index] = totalSum;
-                    sum = armies[armyId].GetUnitCount(unitTypeId);
+                    sum = armies[armyId].GetUnitCount((UnitType)unitTypeId);
                     _unitTypeLengths[index] = sum;
                     totalSum += sum;
                     _unitTypeLengthsSums[index] = totalSum;
@@ -82,17 +85,22 @@ namespace GameLogic.Models
 
             int id = 0;
             for (int armyId = 0; armyId < _armyCount; armyId++)
-                for (int unitTypeId = 0; unitTypeId < _unitTypeCount; unitTypeId++)
-                    for (int unitId = 0; unitId < armies[armyId].GetUnitCount(unitTypeId); unitId++)
+                for (int unitTypeId = 0; unitTypeId < _unitTypeCount; unitTypeId++) // todo: could probably simply iterate over UnitType enum
+                {
+                    var type = (UnitType)unitTypeId;
+                    for (int unitId = 0; unitId < armies[armyId].GetUnitCount(type); unitId++)
                     {
-                        _units[id] = new UnitModel(id, unitTypeId, armyId);
+                        _units[id] = new UnitModel(id, type, armyId);
                         id++;
                     }
+                }
 
             _strategies = new Strategy[_armyCount * _unitTypeCount];
             for (int i = 0; i < _armyCount; i++)
-                for (int j = 0; j < _unitTypeCount; j++)
-                    _strategies[i * _armyCount + j] = armies[i].GetStrategy(j);
+                for (int j = 0; j < _unitTypeCount; j++) // todo: could probably simply iterate over UnitType enum
+                    _strategies[i * _armyCount + j] = armies[i].GetStrategy((UnitType)j);
+
+            _spawnZones = spawnZones;
         }
 
         bool IBattleModel.OneOrZeroArmiesLeft(out int numLeft)
@@ -136,12 +144,12 @@ namespace GameLogic.Models
         /// <param name="armyId">Only units from this army will be returned.</param>
         /// <param name="unitType">Only units of this type will be returned.</param>
         /// <returns>All units from the given army of the given type.</returns>
-        Span<UnitModel> IBattleModel.GetUnits(int armyId, int unitType)
+        Span<UnitModel> IBattleModel.GetUnits(int armyId, UnitType unitType)
         {
             Assert.IsTrue(armyId >= 0 && armyId < _armyCount,
                           "ArmyId must be a valid number ranging from 0 to the total number of armies (exclusive).");
 
-            int index = armyId * _unitTypeCount + unitType;
+            int index = armyId * _unitTypeCount + (int)unitType;
             return new Span<UnitModel>(_units, _unitTypeStarts[index], _unitTypeLengths[index]);
         }
 

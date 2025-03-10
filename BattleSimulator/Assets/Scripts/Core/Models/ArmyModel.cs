@@ -9,7 +9,7 @@ using UnityEngine.Assertions;
 namespace Core.Models
 {
     /// <summary>
-    /// Representation of the army. The amount and the strategy of every unit type.
+    /// Representation of an army. Contains units color and for every unit type - the amount and the behaviour (strategy).
     /// </summary>
     public class ArmyModel : IArmyModel
     {
@@ -17,7 +17,6 @@ namespace Core.Models
         public int UnitTypeCount => _amounts.Length;
 
         public Color Color;
-
         readonly int[] _amounts;
         readonly Strategy[] _strategies;
 
@@ -46,17 +45,8 @@ namespace Core.Models
             Color = color;
         }
 
-        public ArmyModel(List<int> unitAmounts, List<Strategy> strategies)
-        {
-            Assert.IsTrue(unitAmounts.Count == strategies.Count, "Number of unit types must be equal to the number of strategies.");
+        public int GetUnitCount(UnitType unitType) => _amounts[(int)unitType];
 
-            _amounts = unitAmounts.ToArray();
-            _strategies = strategies.ToArray();
-            Color = default;
-        }
-
-        public int GetUnitCount(int unitType) => _amounts[unitType];
-
-        public Strategy GetStrategy(int unitType) => _strategies[unitType];
+        public Strategy GetStrategy(UnitType unitType) => _strategies[(int)unitType];
     }
 }

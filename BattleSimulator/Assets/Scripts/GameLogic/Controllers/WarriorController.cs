@@ -17,16 +17,16 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly UpdateArmyCenterController _updateArmyCenterController;
 
-        readonly Action<int, int, IBattleModel>[] _strategies = {Basic, Defensive};
+        readonly Action<int, UnitType, IBattleModel>[] _strategies = {Basic, Defensive};
 
         static readonly UnitStatsConfig _config;
 
         [Preserve]
         WarriorController() { }
 
-        Action<int, int, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
+        Action<int, UnitType, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
 
-        static void Basic(int armyId, int unitType, IBattleModel battleModel)
+        static void Basic(int armyId, UnitType unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
@@ -42,7 +42,7 @@ namespace GameLogic.Controllers
             }
         }
 
-        static void Defensive(int armyId, int unitType, IBattleModel battleModel)
+        static void Defensive(int armyId, UnitType unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
@@ -55,7 +55,7 @@ namespace GameLogic.Controllers
                 ref UnitModel unit = ref battleModel.GetUnit(model.Id);
                 ref UnitModel enemy = ref battleModel.GetUnit(model.NearestEnemyId);
 
-                ref UnitData sharedData = ref _config.UnitData[model.UnitType];
+                ref UnitData sharedData = ref _config.UnitData[(int)model.UnitType];
                 SharedUnitBehaviors.MoveTowardsCenter(ref unit, _updateArmyCenterController.GetArmyCenter(enemy.ArmyId), sharedData);
 
                 Logic(ref unit, ref enemy);
@@ -64,7 +64,7 @@ namespace GameLogic.Controllers
 
         static void Logic(ref UnitModel model, ref UnitModel enemyModel)
         {
-            ref UnitData sharedData = ref _config.UnitData[model.UnitType];
+            ref UnitData sharedData = ref _config.UnitData[(int)model.UnitType];
 
             // Movement Logic
             if (model.AttackCooldown > sharedData.CooldownDifference)
@@ -87,7 +87,7 @@ namespace GameLogic.Controllers
             if (distance > sharedData.AttackRange)
                 return;
 
-            ref UnitData enemySharedData = ref _config.UnitData[enemyModel.UnitType];
+            ref UnitData enemySharedData = ref _config.UnitData[(int)enemyModel.UnitType];
 
             Signals.UnitAttacked(model.Id);
             model.AttackCooldown = sharedData.AttackCooldown;

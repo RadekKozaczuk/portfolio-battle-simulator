@@ -2,12 +2,14 @@
 using System;
 using Core.Enums;
 using Core.Models;
+using UnityEngine;
 
 namespace GameLogic.Interfaces
 {
-    public interface IBattleModel
+    internal interface IBattleModel
     {
         internal int ArmyCount { get; }
+        internal Bounds[] SpawnZones { get; }
 
         internal bool OneOrZeroArmiesLeft(out int numLeft);
 
@@ -24,7 +26,7 @@ namespace GameLogic.Interfaces
 
         internal Span<UnitModel> GetUnits(int armyId);
 
-        internal Span<UnitModel> GetUnits(int armyId, int unitType);
+        internal Span<UnitModel> GetUnits(int armyId, UnitType unitType);
 
         internal Memory<UnitModel>[] GetUnitsExcept(int armyId, int exceptUnitId);
 

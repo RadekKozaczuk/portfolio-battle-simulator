@@ -7,6 +7,7 @@ using GameLogic.Config;
 using GameLogic.Data;
 using GameLogic.Interfaces;
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Scripting;
 
@@ -17,16 +18,16 @@ namespace GameLogic.Controllers
         [Inject]
         static readonly GameLogicMainController _gameLogicMainController;
 
-        readonly Action<int, int, IBattleModel>[] _strategies = {Basic, Defensive};
+        readonly Action<int, UnitType, IBattleModel>[] _strategies = {Basic, Defensive};
 
         static readonly UnitStatsConfig _config;
 
         [Preserve]
         ArcherController() { }
 
-        Action<int, int, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
+        Action<int, UnitType, IBattleModel> IUnitController.GetBehavior(Strategy strategy) => _strategies[(int)strategy];
 
-        static void Basic(int armyId, int unitType, IBattleModel battleModel)
+        static void Basic(int armyId, UnitType unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
@@ -47,7 +48,7 @@ namespace GameLogic.Controllers
                 if (unit.NearestEnemyId == int.MinValue)
                     continue;
 
-                ref UnitData sharedData = ref _config.UnitData[model.UnitType]; // todo: we retrieve it everytime even tho unit type does not change in runtime
+                ref UnitData sharedData = ref _config.UnitData[(int)model.UnitType]; // todo: we retrieve it everytime even tho unit type does not change in runtime
 
                 float2 pos = CoreData.UnitCurrPos[unitId];
                 float2 enemyPos = CoreData.UnitCurrPos[enemy.Id];
@@ -69,11 +70,12 @@ namespace GameLogic.Controllers
 
                 Signals.UnitAttacked(model.Id);
                 unit.AttackCooldown = sharedData.AttackCooldown;
+
                 _gameLogicMainController.AddProjectile(armyId, pos, enemyPos);
             }
         }
 
-        static void Defensive(int armyId, int unitType, IBattleModel battleModel)
+        static void Defensive(int armyId, UnitType unitType, IBattleModel battleModel)
         {
             Span<UnitModel> units = battleModel.GetUnits(armyId, unitType);
 
@@ -91,7 +93,7 @@ namespace GameLogic.Controllers
 
                 Assert.IsTrue(model.Health > 0, "Executing strategy for a unit that is dead is not allowed.");
 
-                ref UnitData sharedData = ref _config.UnitData[model.UnitType];
+                ref UnitData sharedData = ref _config.UnitData[(int)model.UnitType];
 
                 float2 pos = CoreData.UnitCurrPos[unitId];
                 float2 enemyPos = CoreData.UnitCurrPos[enemy.Id];

@@ -32,6 +32,7 @@ namespace UI.Views
         {
             LeftPanelView leftPanel = MainMenuSceneReferenceHolder.LeftPanel;
             List<ArmyModel> armies = leftPanel.Armies;
+
             Bounds[] spawnZones = PresentationViewModel.GetSpawnBounds();
 
             GameLogicViewModel.InitializeBattle(armies, spawnZones);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Core;
+using Core.Enums;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core.Interfaces;
@@ -91,10 +92,10 @@ namespace Presentation.Controllers
 
             int unitId = 0;
             foreach (ArmyModel army in armies)
-                for (int unitType = 0; unitType < 2; unitType++)
+                for (int unitType = 0; unitType < 2; unitType++) // todo: iterate over UnitType enum
                 {
                     UnitView prefab = _unitConfig.UnitPrefabs[unitType];
-                    for (int i = 0; i < army.GetUnitCount(unitType); i++)
+                    for (int i = 0; i < army.GetUnitCount((UnitType)unitType); i++)
                     {
                         IUnit view = Object.Instantiate(prefab, PresentationSceneReferenceHolder.UnitContainer);
                         view.Renderer.material.color = army.Color;

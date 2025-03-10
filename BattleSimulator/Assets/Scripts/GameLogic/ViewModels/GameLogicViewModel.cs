@@ -5,9 +5,11 @@ using GameLogic.Controllers;
 using JetBrains.Annotations;
 using UnityEngine.Scripting;
 using Core;
+using Core.Enums;
 using Core.Models;
 using Core.Services;
 using GameLogic.Interfaces;
+using GameLogic.Models;
 using UnityEngine;
 
 namespace GameLogic.ViewModels
@@ -16,14 +18,16 @@ namespace GameLogic.ViewModels
     public class GameLogicViewModel
     {
         [Inject]
-        static readonly GameLogicMainController _mainController;
+        static GameLogicMainController _mainController;
 
         [Preserve]
         GameLogicViewModel() { }
 
         public static void CustomUpdate()
         {
-            _mainController.CustomUpdate();
+            if (GameStateService.CurrentState == GameState.Gameplay)
+                _mainController.CustomUpdate();
+
             PresentationViewModel.CustomUpdate();
         }
 
@@ -37,13 +41,11 @@ namespace GameLogic.ViewModels
 
         public static void GameplayOnExit() { }
 
-        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones) =>
-            _mainController.InitializeModel(armies, spawnZones);
-
-        public static void BindControllers()
+        public static void InitializeBattle(List<ArmyModel> armies, Bounds[] spawnZones)
         {
-            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(WarriorController));
-            DependencyInjectionService<ScriptableObject>.BindToInterface<IUnitController>(typeof(ArcherController));
+            IBattleModel model = new BattleModel(armies, spawnZones);
+            DependencyInjectionService<ScriptableObject>.BindModel<IBattleModel>(model);
+            DependencyInjectionService<ScriptableObject>.ResolveBindings();
         }
     }
 }

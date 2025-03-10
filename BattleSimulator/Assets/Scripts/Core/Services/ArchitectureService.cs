@@ -24,10 +24,7 @@ namespace Core.Services
         /// Starts dependency injection and debug commands initialization.
         /// Tapping delay is used only when the game is build on mobile devices and tells how fast player has to tap to open the debug console.
         /// </summary>
-        public static void Inject()
-        {
-            DependencyInjectionService<ScriptableObject>.Inject(FindConfig);
-        }
+        public static void Inject() => DependencyInjectionService<ScriptableObject>.Inject(FindConfig);
 
 #region Intercept
         /// <summary>
@@ -108,6 +105,9 @@ namespace Core.Services
             SignalService.ExecuteSentSignals();
         }
 
+        /// <summary>
+        /// Returns null if no config was found.
+        /// </summary>
         static ScriptableObject? FindConfig(Type type)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

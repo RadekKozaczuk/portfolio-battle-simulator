@@ -367,8 +367,8 @@ namespace Core.Services
             // injectables should be private, readonly, and static
             // ReSharper disable once InvertIf
             if (Attribute.GetCustomAttributes(field, typeof(InjectAttribute), false).Length > 0)
-                if (!field.IsPrivate || !field.IsStatic || !field.IsInitOnly)
-                    VariableNameError("Controllers should be private, readonly, and static.");
+                if (!field.IsPrivate || !field.IsStatic)
+                    VariableNameError("Controllers should be private and static.");
 
             return;
 
@@ -393,7 +393,7 @@ namespace Core.Services
                 // Exceptions for parameters:
                 // - don't validate parameters with a name '_' || "_<number>"
                 if (parameter.Name == '_'.ToString()
-                    || parameter.Name[0] == '_' && int.TryParse(parameter.Name.Substring(1), out _))
+                    || parameter.Name[0] == '_' && int.TryParse(parameter.Name[1..], out _))
                     continue;
 
                 if (!char.IsLower(parameter.Name[0]))

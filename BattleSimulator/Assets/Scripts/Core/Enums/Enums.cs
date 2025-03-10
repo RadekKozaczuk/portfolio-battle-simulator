@@ -20,8 +20,8 @@ namespace Core.Enums
 
     public enum UnitType
     {
-        Warrior = 0,
-        Archer = 1
+        Archer = 0,
+        Warrior = 1
     }
 
     /// <summary>

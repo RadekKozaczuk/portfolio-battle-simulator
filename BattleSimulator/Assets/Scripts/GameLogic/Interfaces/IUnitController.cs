@@ -6,6 +6,6 @@ namespace GameLogic.Interfaces
 {
     internal interface IUnitController
     {
-        internal Action<int, int, IBattleModel> GetBehavior(Strategy strategy);
+        internal Action<int, UnitType, IBattleModel> GetBehavior(Strategy strategy);
     }
 }

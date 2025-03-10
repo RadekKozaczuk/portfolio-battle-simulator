@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using Core.Models;
 using GameLogic.Interfaces;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests.BattleModel
 {
     class GetUnitsExcept_TwoArmies
     {
+        Bounds[] _bounds;
+
+        [SetUp]
+        public void SetUp()
+        {
+            // Arrange the common setup for the tests
+            _bounds = new Bounds[] {new(Vector3.zero, Vector3.zero), new(Vector3.zero, Vector3.zero)};
+        }
+
         [Test]
         public void FiftySoldiersCombined_Except20th()
         {
@@ -17,7 +27,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Memory<UnitModel>[] units1 = battle.GetUnitsExcept(0, 20);
             Memory<UnitModel>[] warriors1 = battle.GetUnitsExcept(0, 0, 20);
             Memory<UnitModel>[] archers1 = battle.GetUnitsExcept(0, 1, 20);
@@ -61,7 +71,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Memory<UnitModel>[] army1Units = battle.GetUnitsExcept(0, 101);
             Memory<UnitModel>[] army2Units = battle.GetUnitsExcept(1, 101);
 
@@ -86,7 +96,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Memory<UnitModel>[] army1Warriors = battle.GetUnitsExcept(0, 0, 101);
             Memory<UnitModel>[] army2Warriors = battle.GetUnitsExcept(1, 0, 101);
 
@@ -111,7 +121,7 @@ namespace Tests.BattleModel
             var armies = new List<ArmyModel> {army1, army2};
 
             // 2. Act
-            IBattleModel battle = new GameLogic.Models.BattleModel(armies);
+            IBattleModel battle = new GameLogic.Models.BattleModel(armies, _bounds);
             Memory<UnitModel>[] army1Archers = battle.GetUnitsExcept(0, 1, 101);
             Memory<UnitModel>[] army2Archers = battle.GetUnitsExcept(1, 1, 101);
 

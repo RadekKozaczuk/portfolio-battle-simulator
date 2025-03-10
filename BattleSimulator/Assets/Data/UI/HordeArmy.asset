@@ -15,9 +15,9 @@ MonoBehaviour:
   Name: Horde
   Color: {r: 0.16, g: 0.75, b: 0.26, a: 1}
   Units:
-  - Name: Warrior
+  - Name: Archer
     Amount: 50
     Strategy: 0
-  - Name: Archer
+  - Name: Warrior
     Amount: 50
     Strategy: 0

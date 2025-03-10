@@ -1,19 +1,11 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Core
 {
     public static class ExtensionMethods
     {
-        public static void AllocFreeAddRange<T>(this IList<T> list, IList<T> items)
-        {
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 0; i < items.Count; i++)
-                list.Add(items[i]);
-        }
-
         /// <summary>
         /// Returns true if this type is declared with static keyword.
         /// </summary>

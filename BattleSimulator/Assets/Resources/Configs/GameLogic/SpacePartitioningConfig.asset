@@ -9,15 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d775e157560446089de9b77da62cbe31, type: 3}
-  m_Name: AllianceArmy
+  m_Script: {fileID: 11500000, guid: 93513840fe47436993ed8a46c8dd5acf, type: 3}
+  m_Name: SpacePartitioningConfig
   m_EditorClassIdentifier: 
-  Name: Alliance
-  Color: {r: 0.23, g: 0.75, b: 0.7, a: 1}
-  Units:
-  - Name: Archer
-    Amount: 50
-    Strategy: 0
-  - Name: Warrior
-    Amount: 50
-    Strategy: 0
+  QuadrantCount: 8
+  AreaSize: {x: 100, y: 100}

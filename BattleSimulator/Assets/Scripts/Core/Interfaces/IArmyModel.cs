@@ -4,8 +4,8 @@ namespace Core.Interfaces
 {
     public interface IArmyModel
     {
-        public int GetUnitCount(int unitType);
+        public int GetUnitCount(UnitType unitType);
 
-        public Strategy GetStrategy(int unitType);
+        public Strategy GetStrategy(UnitType unitType);
     }
 }

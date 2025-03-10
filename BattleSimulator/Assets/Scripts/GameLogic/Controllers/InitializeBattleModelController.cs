@@ -1,6 +1,7 @@
 ﻿#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 using System;
 using Core;
+using Core.Enums;
 using Core.Models;
 using GameLogic.Config;
 using GameLogic.Interfaces;
@@ -23,20 +24,20 @@ namespace GameLogic.Controllers
         [Preserve]
         internal InitializeBattleModelController() { }
 
-        internal void InitializeModel(IBattleModel battleModel, Bounds[] spawnZones)
+        internal void InitializeModel(IBattleModel battleModel)
         {
             // todo: in the future add GetUnitCount
             Span<UnitModel> units = battleModel.GetUnits();
 
             CreateNativeArrays(units.Length);
-            CreateUnitModels(2, battleModel, spawnZones);
+            CreateUnitModels(battleModel);
 
             // apply health
             for (int armyId = 0; armyId < 2; armyId++)
-                for (int unitType = 0; unitType < 2; unitType++)
+                for (int unitType = 0; unitType < Enum.GetNames(typeof(UnitType)).Length; unitType++)
                 {
                     int health = _config.UnitData[unitType].Health;
-                    Span<UnitModel> span = battleModel.GetUnits(armyId, unitType);
+                    Span<UnitModel> span = battleModel.GetUnits(armyId, (UnitType)unitType);
 
                     for (int i = 0; i < span.Length; i++)
                         span[i].Health = health;
@@ -52,13 +53,13 @@ namespace GameLogic.Controllers
                 CoreData.AttackingEnemyPos[i] = new float2(float.MinValue, float.MinValue);
         }
 
-        void CreateUnitModels(int armyCount, IBattleModel battleModel, Bounds[] spawnZones)
+        void CreateUnitModels(IBattleModel battleModel)
         {
             int index = 0;
 
-            for (int armyId = 0; armyId < armyCount; armyId++)
+            for (int armyId = 0; armyId < battleModel.ArmyCount; armyId++)
             {
-                Bounds bounds = spawnZones[armyId];
+                Bounds bounds = battleModel.SpawnZones[armyId];
                 Span<UnitModel> units = battleModel.GetUnits(armyId);
 
                 for (int i = 0; i < units.Length; i++)

@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: UnitStatsConfig
   m_EditorClassIdentifier: 
   UnitData:
-  - {fileID: 11400000, guid: c2df4eefbae2a4a49998e6f748712596, type: 2}
   - {fileID: 11400000, guid: 7a3a7fee9f85e574680c9a78e6a44223, type: 2}
+  - {fileID: 11400000, guid: c2df4eefbae2a4a49998e6f748712596, type: 2}

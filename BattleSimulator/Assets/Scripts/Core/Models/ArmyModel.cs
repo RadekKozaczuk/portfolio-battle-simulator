@@ -45,8 +45,8 @@ namespace Core.Models
             Color = color;
         }
 
-        public int GetUnitCount(int unitType) => _amounts[unitType];
+        public int GetUnitCount(UnitType unitType) => _amounts[(int)unitType];
 
-        public Strategy GetStrategy(int unitType) => _strategies[unitType];
+        public Strategy GetStrategy(UnitType unitType) => _strategies[(int)unitType];
     }
 }

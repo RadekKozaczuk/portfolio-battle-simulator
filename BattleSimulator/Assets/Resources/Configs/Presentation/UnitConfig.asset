@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: UnitConfig
   m_EditorClassIdentifier: 
   UnitPrefabs:
-  - {fileID: 5677383435110417796, guid: 59bb833c36b6c124f9ac4a57845f601a, type: 3}
   - {fileID: 3941805810320399329, guid: 32e971c955b2e2149941e507104e167d, type: 3}
+  - {fileID: 5677383435110417796, guid: 59bb833c36b6c124f9ac4a57845f601a, type: 3}

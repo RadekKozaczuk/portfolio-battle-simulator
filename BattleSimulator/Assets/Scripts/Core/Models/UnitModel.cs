@@ -1,11 +1,13 @@
-﻿namespace Core.Models
+﻿using Core.Enums;
+
+namespace Core.Models
 {
     public struct UnitModel
     {
         // todo: Health and HealthDelta -> one int
         // todo: Id, UnitType, ArmyId and NearestEnemyId -> one int
         public readonly int Id;
-        public readonly int UnitType;
+        public readonly UnitType UnitType;
         public readonly int ArmyId;
         public int NearestEnemyId;
 
@@ -18,7 +20,7 @@
 
         public float AttackCooldown;
 
-        public UnitModel(int id, int unitType, int armyId)
+        public UnitModel(int id, UnitType unitType, int armyId)
         {
             Id = id;
             UnitType = unitType;

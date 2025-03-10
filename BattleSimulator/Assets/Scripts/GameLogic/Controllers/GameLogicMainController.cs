@@ -120,8 +120,8 @@ namespace GameLogic.Controllers
                 for (int unitType = 0; unitType < 2; unitType++)
                 {
                     Strategy strategy = _battleModel.GetStrategy(armyId, unitType);
-                    Action<int, int, IBattleModel> action = _unitControllers[unitType].GetBehavior(strategy);
-                    action(armyId, unitType, _battleModel);
+                    Action<int, UnitType, IBattleModel> action = _unitControllers[unitType].GetBehavior(strategy);
+                    action(armyId, (UnitType)unitType, _battleModel);
                 }
             }
 

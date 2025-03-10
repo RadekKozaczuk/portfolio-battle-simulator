@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Core.Enums;
-using Core.Models;
 using TMPro;
 using UI.Config;
 using UI.Data;

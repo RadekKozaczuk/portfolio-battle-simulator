@@ -15,9 +15,9 @@ MonoBehaviour:
   Name: Alliance
   Color: {r: 0.23, g: 0.75, b: 0.7, a: 1}
   Units:
-  - Name: Warrior
+  - Name: Archer
     Amount: 50
     Strategy: 0
-  - Name: Archer
+  - Name: Warrior
     Amount: 50
     Strategy: 0

@@ -42,8 +42,6 @@ namespace GameLogic.Models
             Target = target;
             InUse = true;
 
-            Debug.Log($"Projectile recycled: armyId: {armyId}, projectileId: {Id}");
-
             Signals.ProjectileCreated(Id,
                                       armyId,
                                       new Vector3(_position.x, 0, _position.y),
